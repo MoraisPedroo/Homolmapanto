@@ -52,6 +52,11 @@
     #search-container.expanded #search-input { width: 250px; padding-left: 1rem; padding-right: 0.5rem; }
     #search-results { position: absolute; top: 110%; right: 0; width: 300px; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto; display: none; }
     .result-item:hover, .result-item:focus { background-color: #f0f0f0; outline: none; }
+
+    /* Estilos para status na modal */
+    .square { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
+    .status-row { display: flex; align-items: center; gap: 10px; }
+    .status-text { font-weight: 700; font-size: 18px; }
   </style>
 </head>
 <body class="bg-[#F3F0EC] text-[#3D405B]">
@@ -66,9 +71,6 @@
         </div>
       </form>
       <div id="search-results" aria-hidden="true" role="listbox"></div>
-    </div>
-    <div id="add-hitbox" class="icon-hitbox bg-white rounded-full shadow-md" title="Adicionar impressora">
-      <button id="add-printer-btn" class="w-12 h-12 bg-[#81B29A] text-white rounded-full shadow-md hover:bg-[#6a947e] transition-colors text-2xl font-bold flex items-center justify-center" aria-pressed="false">+</button>
     </div>
   </div>
 
@@ -104,33 +106,21 @@
         <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
         <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
       </div>
-      <div class="mt-6 grid grid-cols-2 gap-3">
-        <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="col-span-1 text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
-        <button id="edit-printer-btn" class="col-span-1 px-4 py-3 bg-[#3D405B] text-white rounded-lg hover:bg-opacity-90 transition-colors">Editar</button>
-        <button id="reposition-printer-btn" class="col-span-1 px-4 py-3 bg-yellow-500 text-white rounded-lg hover:bg-opacity-90 transition-colors">Reposicionar</button>
-        <button id="delete-printer-btn" class="col-span-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Remover</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="add-modal" class="modal-backdrop hidden" aria-hidden="true">
-    <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
-      <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
-      <h2 id="add-modal-title" class="text-2xl font-bold mb-4">Adicionar Nova Impressora</h2>
-      <form id="add-printer-form" class="space-y-4">
-        <input name="name" placeholder="Nome (Ex: Recepção P&B)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
-        <input name="department" placeholder="Departamento" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
-        <input name="selb" placeholder="SELB (Ex: 98765)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
-        <input name="ip" placeholder="Endereço IP (Ex: 192.168.1.25)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
-        <select name="floor" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
-          <option value="1">Andar 1</option>
-          <option value="2">Andar 2</option>
-        </select>
-        <textarea name="observations" placeholder="Observações sobre a impressora" class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B] h-20"></textarea>
-        <div class="flex items-center justify-between gap-2">
-          <button type="submit" id="add-submit-btn" class="flex-1 px-6 py-3 bg-[#3D405B] text-white rounded-lg hover:bg-opacity-90 transition-colors">Salvar Impressora</button>
+      <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+        <div class="status-row">
+          <span id="status-sq" class="square" style="background:#ccc"></span>
+          <div id="status-text" class="status-text">--</div>
         </div>
-      </form>
+        <div id="status-message" class="message mt-2 text-sm"></div>
+      </div>
+      <div class="mt-6 space-y-2">
+        <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
+        <div class="grid grid-cols-3 gap-2">
+          <button id="check-status-btn" class="px-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Status</button>
+          <button id="calibrate-btn" class="px-2 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Calibrar</button>
+          <button id="head-test-btn" class="px-2 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm">Teste Cabeça</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -142,32 +132,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const mapInner = document.getElementById('map-inner');
   const tooltip = document.getElementById('map-tooltip');
   const mapImage = document.getElementById('map-image');
-  const addPrinterBtn = document.getElementById('add-printer-btn');
-  const addHitbox = document.getElementById('add-hitbox');
   const searchContainer = document.getElementById('search-container');
   const searchHitbox = document.getElementById('search-hitbox');
   const searchForm = document.getElementById('search-form');
   const searchInput = document.getElementById('search-input');
   const searchResultsPanel = document.getElementById('search-results');
   const detailsModal = document.getElementById('details-modal');
-  const addModal = document.getElementById('add-modal');
-  const addPrinterForm = document.getElementById('add-printer-form');
-  const deletePrinterBtn = document.getElementById('delete-printer-btn');
-  const editPrinterBtn = document.getElementById('edit-printer-btn');
-  const repositionPrinterBtn = document.getElementById('reposition-printer-btn');
-  const addModalTitle = document.getElementById('add-modal-title');
-  const addSubmitBtn = document.getElementById('add-submit-btn');
   const floorSelect = document.getElementById('floor-select');
   const toastEl = document.getElementById('toast-notification');
+  const checkStatusBtn = document.getElementById('check-status-btn');
+  const calibrateBtn = document.getElementById('calibrate-btn');
+  const headTestBtn = document.getElementById('head-test-btn');
 
   let printerData = [];
-  let isAddMode = false;
-  let newPrinterCoords = { top: '50%', left: '50%' };
-  let printerToDeleteSelb = null;
   let transientLabel = null;
   let focusResetTimer = null;
-  let repositionTargetSelb = null; // quando setado, clique no mapa reposiciona essa impressora
   let currentFloor = 1;
+  let currentPrinterIp = '';
 
   const initialPrinters2floor = [
 {name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'CAF', selb:'ZD220 CAF', ip:'111111', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
@@ -267,12 +248,37 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
 {name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
 {name:'DESCOBRIR LIS E IP', department:'LOGISTICA', selb:'TEM Q VER', ip:'A', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
-{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'Colorimetria', selb:'nao tem', ip:'n', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
+{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'Colorimetria', selb:'nao tem', ip:'n', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}},
+{name:'teste sala t.i', department:'t.i', selb:'8ln1', ip:'172.19.114.114', observations:'', floor:1, pos:{top:'10.84912266384412%', left:'81.14326726683888%'}}
 ];
 
+  // Comandos ZPL
+  const TESTE_CABECA = `I8,A,001
+
+Q240,024
+q831
+rN
+S4
+D9
+ZB
+JF
+OD
+R215,0
+f100
+N
+
+A300,220,2,4,1,1,R,"TESTE SELBETTI"
+
+B375,139,2,1,4,12,93,B,"1234567890"
+LO1,146,398,46
+P5
+
+`;
+
+  const CALIBRAGEM = `~jc^xa^jus^xz`;
+
   function showToast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),3000); }
-  function savePrinters(){ localStorage.setItem('interactiveMapPrinters', JSON.stringify(printerData)); }
-  function loadPrinters(){ const s=localStorage.getItem('interactiveMapPrinters'); printerData = s ? JSON.parse(s) : initialPrinters.concat(initialPrinters2floor); renderAllPrinters(); }
+  function loadPrinters(){ printerData = initialPrinters.concat(initialPrinters2floor); renderAllPrinters(); }
 
   function debounce(fn, delay) {
     let t;
@@ -326,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     mapImage.onerror = function() { this.onerror = null; this.src = 'https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel'; };
   }
 
-  // CORREÇÃO: remove transientLabel antes de abrir o modal (evita sobrepor)
   function showDetailsModal(printer){
     if (transientLabel) { transientLabel.remove(); transientLabel = null; }
 
@@ -335,107 +340,90 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-selb').textContent = printer.selb;
     document.getElementById('modal-ip').textContent = printer.ip;
     document.getElementById('modal-observations').textContent = printer.observations || 'Nenhuma observação.';
-    printerToDeleteSelb = printer.selb;
+    currentPrinterIp = printer.ip;
 
     document.getElementById('modal-link').href = `http://${printer.ip}`;
     document.getElementById('modal-link').setAttribute('rel','noopener noreferrer');
+    // Reset status display
+    document.getElementById('status-display').classList.add('hidden');
+    document.getElementById('status-sq').style.background = '#ccc';
+    document.getElementById('status-text').innerText = '--';
+    document.getElementById('status-message').innerText = '';
     detailsModal.classList.remove('hidden');
     detailsModal.setAttribute('aria-hidden','false');
   }
   
-  function toggleAddMode(){ 
-    isAddMode = !isAddMode;
-    addPrinterBtn.classList.toggle('bg-[#81B29A]', !isAddMode);
-    addPrinterBtn.classList.toggle('bg-yellow-500', isAddMode);
-    addPrinterBtn.setAttribute('aria-pressed', String(isAddMode));
-    mapContainer.classList.toggle('add-mode', isAddMode);
-    mapContainer.classList.toggle('border-yellow-500', isAddMode);
-    mapContainer.classList.toggle('border-transparent', !isAddMode);
-    if (isAddMode) { showToast('Clique no mapa para posicionar a nova impressora.'); }
+  async function checkStatus(ip) {
+    const display = document.getElementById('status-display');
+    const sq = document.getElementById('status-sq');
+    const statusText = document.getElementById('status-text');
+    const message = document.getElementById('status-message');
+
+    display.classList.add('hidden');
+    sq.style.background = '#ccc';
+    statusText.innerText = '--';
+    message.innerText = '';
+
+    if (!ip) { showToast('IP inválido!'); return; }
+
+    try {
+      const res = await fetch(`proxy.php?ip=${encodeURIComponent(ip)}`);
+      if (!res.ok) throw new Error('Erro HTTP ' + res.status);
+      const json = await res.json();
+
+      let ok = false;
+      if (json.color && json.color.toLowerCase() === 'green') ok = true;
+      else {
+        const s = (json.status || '').toLowerCase();
+        if (s.includes('aguardo') || s.includes('pronto') || s.includes('ready') || s.includes('ok')) ok = true;
+      }
+
+      if (ok) {
+        sq.style.background = 'green';
+        statusText.style.color = 'green';
+        statusText.innerText = 'Ready';
+      } else {
+        sq.style.background = 'red';
+        statusText.style.color = 'red';
+        statusText.innerText = 'Pause';
+      }
+
+      message.innerText = json.message || json.status || 'Condição verificada.';
+      display.classList.remove('hidden');
+    } catch (err) {
+      display.classList.remove('hidden');
+      sq.style.background = 'red';
+      statusText.style.color = 'red';
+      statusText.innerText = 'Pause';
+      message.innerText = `Erro ao conectar: ${err.message}`;
+    }
   }
 
-  mapContainer.addEventListener('click', (event) => {
-    if (event.target.closest('.printer-point')) return;
-    const rect = mapContainer.getBoundingClientRect();
-    const coords = { 
-        top: `${((event.clientY - rect.top) / rect.height) * 100}%`, 
-        left: `${((event.clientX - rect.left) / rect.width) * 100}%` 
-    };
+  async function sendCommand(cmd, actionName) {
+    if (!currentPrinterIp) { showToast('IP inválido!'); return; }
+    if (!cmd || cmd.trim() === '') { showToast('Comando vazio!'); return; }
 
-    if (isAddMode && repositionTargetSelb) {
-      const p = printerData.find(p => p.selb === repositionTargetSelb);
-      if (p) {
-        p.pos = coords;
-        savePrinters();
-        renderAllPrinters();
-        showToast('Posição da impressora atualizada.');
+    try {
+      const payload = { ip: currentPrinterIp, cmd: cmd };
+      const res = await fetch('proxy.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showToast(`${actionName} enviado com sucesso!`);
+      } else {
+        showToast(`Erro: ${json.error || 'Falha no envio'}`);
       }
-      repositionTargetSelb = null;
-      toggleAddMode();
-      return;
+    } catch (err) {
+      showToast(`Erro de conexão: ${err.message}`);
     }
+  }
 
-    if (!isAddMode) return;
-    newPrinterCoords = coords;
-    addPrinterForm.reset();
-    delete addModal.dataset.editingSelb;
-    addModalTitle.textContent = 'Adicionar Nova Impressora';
-    addSubmitBtn.textContent = 'Salvar Impressora';
-    addPrinterForm.querySelector('[name="floor"]').value = String(currentFloor);
-    addModal.classList.remove('hidden');
-    addModal.setAttribute('aria-hidden','false');
-    toggleAddMode();
-  });
-
-  addPrinterForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const formData = new FormData(addPrinterForm);
-    const name = (formData.get('name') || '').trim();
-    const department = (formData.get('department') || '').trim();
-    const selb = (formData.get('selb') || '').trim();
-    const ip = (formData.get('ip') || '').trim();
-    const observations = (formData.get('observations') || '').trim();
-    const floor = parseInt(formData.get('floor') || currentFloor, 10);
-
-    if (!name || !department || !selb || !ip) {
-      showToast('Preencha todos os campos obrigatórios.');
-      return;
-    }
-
-    const editingSelb = addModal.dataset.editingSelb;
-    if (editingSelb) {
-      const idx = printerData.findIndex(p => p.selb === editingSelb);
-      if (idx === -1) { showToast('Erro: impressora não encontrada.'); addModal.classList.add('hidden'); return; }
-      if (selb !== editingSelb && printerData.some(p => p.selb === selb)) { showToast('Erro: já existe outra impressora com esse SELB.'); return; }
-
-      printerData[idx].name = name;
-      printerData[idx].department = department;
-      printerData[idx].selb = selb;
-      printerData[idx].ip = ip;
-      printerData[idx].observations = observations;
-      printerData[idx].floor = floor;
-      printerData[idx].pos = newPrinterCoords || printerData[idx].pos;
-
-      savePrinters();
-      renderAllPrinters();
-      addModal.classList.add('hidden');
-      detailsModal.classList.add('hidden');
-      delete addModal.dataset.editingSelb;
-      showToast('Impressora atualizada com sucesso.');
-      return;
-    }
-
-    if (printerData.some(p => p.selb === selb)) { showToast('Erro: já existe uma impressora com esse SELB.'); return; }
-
-    const newPrinter = { name, department, selb, ip, observations, floor, pos: newPrinterCoords };
-    printerData.push(newPrinter);
-    savePrinters();
-    renderAllPrinters();
-    addModal.classList.add('hidden');
-    showToast('Impressora adicionada com sucesso.');
-  });
-
-  addHitbox.addEventListener('click', (e)=>{ e.stopPropagation(); toggleAddMode(); });
+  checkStatusBtn.addEventListener('click', () => checkStatus(currentPrinterIp));
+  calibrateBtn.addEventListener('click', () => sendCommand(CALIBRAGEM, 'Calibragem'));
+  headTestBtn.addEventListener('click', () => sendCommand(TESTE_CABECA, 'Teste de cabeça'));
   
   searchHitbox.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -556,57 +544,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  deletePrinterBtn.addEventListener('click', () => {
-    printerData = printerData.filter(p => p.selb !== printerToDeleteSelb);
-    savePrinters(); renderAllPrinters(); detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-    showToast('Impressora removida com sucesso!');
-  });
-
-  editPrinterBtn.addEventListener('click', () => {
-    const selb = printerToDeleteSelb;
-    const p = printerData.find(x => x.selb === selb);
-    if (!p) return showToast('Impressora não encontrada.');
-
-    addPrinterForm.reset();
-    addPrinterForm.querySelector('[name="name"]').value = p.name;
-    addPrinterForm.querySelector('[name="department"]').value = p.department;
-    addPrinterForm.querySelector('[name="selb"]').value = p.selb;
-    addPrinterForm.querySelector('[name="ip"]').value = p.ip;
-    addPrinterForm.querySelector('[name="observations"]').value = p.observations || '';
-    addPrinterForm.querySelector('[name="floor"]').value = String(p.floor || currentFloor);
-    newPrinterCoords = p.pos || newPrinterCoords;
-
-    addModal.dataset.editingSelb = p.selb;
-    addModalTitle.textContent = 'Editar Impressora';
-    addSubmitBtn.textContent = 'Salvar Alterações';
-    detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-    addModal.classList.remove('hidden'); addModal.setAttribute('aria-hidden','false');
-  });
-
-  repositionPrinterBtn.addEventListener('click', () => {
-    const selb = printerToDeleteSelb;
-    const p = printerData.find(x => x.selb === selb);
-    if (!p) return showToast('Impressora não encontrada.');
-    repositionTargetSelb = selb;
-    if (!isAddMode) toggleAddMode();
-    detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-    showToast('Clique no mapa para reposicionar a impressora selecionada.');
-  });
-
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) {
         detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-        addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
-        delete addModal.dataset.editingSelb;
       }
     });
   });
 
   document.querySelectorAll('.close-modal-btn').forEach(b => b.addEventListener('click', () => {
     detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-    addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
-    delete addModal.dataset.editingSelb;
   }));
 
   floorSelect.addEventListener('change', (e) => {
@@ -617,12 +564,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
       if (e.key === "Escape") {
           detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
-          addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
           searchResultsPanel.style.display = 'none';
           if (searchContainer.classList.contains('expanded')) {
               searchContainer.classList.remove('expanded'); searchInput.value = '';
           }
-          delete addModal.dataset.editingSelb;
       }
   });
 
