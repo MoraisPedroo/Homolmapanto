@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MapaNto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FAVICON: coloque seu arquivo aqui com nome favicon.png na mesma pasta -->
+  <link rel="icon" type="image/png" href="../MapaNto/pardinilogo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../MapaNto/pardinilogo.png">
+  <meta name="theme-color" content="#F3F0EC">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+
+    /* pontos da impressora: usamos variável --point-color para controlar a cor do halo */
+    .printer-point { 
+      position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer;
+      transition: all 0.25s ease; display:flex; align-items:center; justify-content:center;
+      transform:translate(-50%,-50%); z-index:20;
+      --point-color: #3b82f6; /* fallback */
+    }
+    .printer-point::before { 
+      content:''; position:absolute; width:100%; height:100%; border-radius:9999px;
+      animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; 
+    }
+    .printer-point:hover { transform: translate(-50%, -50%) scale(1.25); z-index:25; }
+    .printer-point-icon{ width:14px; height:14px; color:white; z-index:30; }
+    @keyframes pulse { 0%{transform:scale(0.95);}70%{transform:scale(1);}100%{transform:scale(0.95);} }
+    .highlighted { transform: translate(-50%, -50%) scale(1.6) !important; z-index:60 !important; transition: transform .2s ease; }
+    .highlighted::before { animation: highlight-pulse 1s infinite !important; background-color: rgba(59,130,246,0.95) !important; }
+    @keyframes highlight-pulse { 0%{box-shadow:0 0 0 0 rgba(59,130,246,0.8);}70%{box-shadow:0 0 0 18px rgba(59,130,246,0);}100%{box-shadow:0 0 0 0 rgba(59,130,246,0);} }
+
+    .icon-hitbox { display:inline-flex; align-items:center; justify-content:center; padding:8px; border-radius:9999px; cursor:pointer; -webkit-tap-highlight-color: transparent; }
+    .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:40; display:flex; align-items:center; justify-content:center; }
+    .modal-content { z-index:50; }
+    #map-container.add-mode { cursor:crosshair; }
+    .toast { position: fixed; top:20px; right:20px; background:#3D405B; color:white; padding:12px 20px; border-radius:8px; z-index:100; opacity:0; transform: translateY(-20px); transition: opacity .5s, transform .5s; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    #map-tooltip { position:absolute; background:#3D405B; color:white; padding:8px 12px; border-radius:6px; font-size:.875rem; line-height:1.4; opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s; pointer-events:none; z-index:60; transform: translate(-50%,-125%); white-space:nowrap; }
+    #map-tooltip.show { opacity:1; visibility:visible; }
+
+    /* CORREÇÃO AQUI: z-index reduzido para não cobrir o modal */
+    .focus-label { position:absolute; transform: translate(-50%,-120%); background: rgba(255,255,255,0.95); border-radius:6px; padding:6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index:45; font-weight:600; white-space:nowrap; }
+
+    #map-inner { position: relative; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 250ms cubic-bezier(.2,.9,.3,1); }
+
+    /* busca expandida */
+    #search-input { transition: width 300ms ease-in-out; width: 0; padding-left: 0; padding-right: 0; }
+    #search-container.expanded #search-input { width: 250px; padding-left: 1rem; padding-right: 0.5rem; }
+    #search-results { position: absolute; top: 110%; right: 0; width: 300px; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto; display: none; }
+    .result-item:hover, .result-item:focus { background-color: #f0f0f0; outline: none; }
+  </style>
+</head>
+<body class="bg-[#F3F0EC] text-[#3D405B]">
+  <div id="side-actions" class="fixed top-4 right-4 z-30 flex flex-col items-end gap-3">
+    <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
+      <form id="search-form" class="flex items-center" role="search">
+        <input id="search-input" type="text" placeholder="Buscar por Nome ou SELB..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar impressora">
+        <div id="search-hitbox" class="icon-hitbox" title="Buscar">
+            <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600" aria-label="Abrir pesquisa">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </button>
+        </div>
+      </form>
+      <div id="search-results" aria-hidden="true" role="listbox"></div>
+    </div>
+    <div id="add-hitbox" class="icon-hitbox bg-white rounded-full shadow-md" title="Adicionar impressora">
+      <button id="add-printer-btn" class="w-12 h-12 bg-[#81B29A] text-white rounded-full shadow-md hover:bg-[#6a947e] transition-colors text-2xl font-bold flex items-center justify-center" aria-pressed="false">+</button>
+    </div>
+  </div>
+
+  <div class="container mx-auto p-4 md:p-8">
+    <header class="text-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold">Mapeamento de Impressoras Térmicas</h1><h5>By Pedro Assis e Diego Pereira</h5>
+        <select id="floor-select" class="mt-4 p-2 border rounded" aria-label="Selecionar andar">
+          <option value="1">Andar 1</option>
+          <option value="2">Andar 2</option>
+        </select>
+    </header>
+    <main>
+      <div id="map-container" 
+           class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-4 border-transparent transition-colors duration-300" 
+           style="width: min(3840px, 92vw); aspect-ratio: 3840 / 2715;">
+        <div id="map-inner" class="relative w-full h-full">
+          <img id="map-image" src="plantanto.jpg" alt="Planta do escritório" 
+               class="w-full h-full object-contain bg-white" 
+               onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
+        </div>
+        <div id="map-tooltip" role="status" aria-live="polite"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
+    <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
+      <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
+      <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
+      <div class="space-y-3 text-gray-700">
+        <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
+        <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+        <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+        <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
+      </div>
+      <div class="mt-6 grid grid-cols-2 gap-3">
+        <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="col-span-1 text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
+        <button id="edit-printer-btn" class="col-span-1 px-4 py-3 bg-[#3D405B] text-white rounded-lg hover:bg-opacity-90 transition-colors">Editar</button>
+        <button id="reposition-printer-btn" class="col-span-1 px-4 py-3 bg-yellow-500 text-white rounded-lg hover:bg-opacity-90 transition-colors">Reposicionar</button>
+        <button id="delete-printer-btn" class="col-span-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Remover</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="add-modal" class="modal-backdrop hidden" aria-hidden="true">
+    <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
+      <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
+      <h2 id="add-modal-title" class="text-2xl font-bold mb-4">Adicionar Nova Impressora</h2>
+      <form id="add-printer-form" class="space-y-4">
+        <input name="name" placeholder="Nome (Ex: Recepção P&B)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
+        <input name="department" placeholder="Departamento" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
+        <input name="selb" placeholder="SELB (Ex: 98765)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
+        <input name="ip" placeholder="Endereço IP (Ex: 192.168.1.25)" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
+        <select name="floor" required class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B]">
+          <option value="1">Andar 1</option>
+          <option value="2">Andar 2</option>
+        </select>
+        <textarea name="observations" placeholder="Observações sobre a impressora" class="w-full p-3 border rounded focus:ring-2 focus:ring-[#3D405B] h-20"></textarea>
+        <div class="flex items-center justify-between gap-2">
+          <button type="submit" id="add-submit-btn" class="flex-1 px-6 py-3 bg-[#3D405B] text-white rounded-lg hover:bg-opacity-90 transition-colors">Salvar Impressora</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const mapContainer = document.getElementById('map-container');
+  const mapInner = document.getElementById('map-inner');
+  const tooltip = document.getElementById('map-tooltip');
+  const mapImage = document.getElementById('map-image');
+  const addPrinterBtn = document.getElementById('add-printer-btn');
+  const addHitbox = document.getElementById('add-hitbox');
+  const searchContainer = document.getElementById('search-container');
+  const searchHitbox = document.getElementById('search-hitbox');
+  const searchForm = document.getElementById('search-form');
+  const searchInput = document.getElementById('search-input');
+  const searchResultsPanel = document.getElementById('search-results');
+  const detailsModal = document.getElementById('details-modal');
+  const addModal = document.getElementById('add-modal');
+  const addPrinterForm = document.getElementById('add-printer-form');
+  const deletePrinterBtn = document.getElementById('delete-printer-btn');
+  const editPrinterBtn = document.getElementById('edit-printer-btn');
+  const repositionPrinterBtn = document.getElementById('reposition-printer-btn');
+  const addModalTitle = document.getElementById('add-modal-title');
+  const addSubmitBtn = document.getElementById('add-submit-btn');
+  const floorSelect = document.getElementById('floor-select');
+  const toastEl = document.getElementById('toast-notification');
+
+  let printerData = [];
+  let isAddMode = false;
+  let newPrinterCoords = { top: '50%', left: '50%' };
+  let printerToDeleteSelb = null;
+  let transientLabel = null;
+  let focusResetTimer = null;
+  let repositionTargetSelb = null; // quando setado, clique no mapa reposiciona essa impressora
+  let currentFloor = 1;
+
+  const initialPrinters2floor = [
+{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'CAF', selb:'ZD220 CAF', ip:'111111', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
+{name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
+{name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
+{name:'5H62', department:'MONTAGEM DE KITS', selb:'5H62', ip:'DESCOBRIR IP', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}} ];
+
+  const initialPrinters = [
+{name:'CDA00030', department:'Customer Service', ip:'172.19.114.30', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
+{name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
+{name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
+{name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
+{name:'CRP04095', department:'Coprologia', ip:'172.19.114.92', selb:'GC420t - Minietiqueta CRP04095', pos:{top:'5.284650492433341%', left:'19.39538043478261%'}, floor:1, observations:'DRIVER GC420T (7x3) - CRP04095'},
+{name:'MIC22094', department:'Micobacterias', ip:'172.19.114.220', selb:'DCC8', pos:{top:'16.04612058611578%', left:'43.51222826086957%'}, floor:1, observations:''},
+{name:'MIC02117', department:'Micobacterias', ip:'172.19.114.117', selb:'GC420t - Minietiqueta - MIC02117', pos:{top:'17.775642565457602%', left:'41.88179347826087%'}, floor:1, observations:'DRIVER GC420T (5x3)'},
+{name:'MIC02494', department:'Micobacterias', ip:'172.19.114.24', selb:'4Q88', pos:{top:'7.526679928436487%', left:'45.71469009013791%'}, floor:1, observations:''},
+{name:'CDA10394', department:'CAC', ip:'172.19.141.103', selb:'SPR2', pos:{top:'77.15589718952678%', left:'83.86548913043478%'}, floor:1, observations:''},
+{name:'CDA13094', department:'CDA', ip:'172.19.141.130', selb:'8KQ6', pos:{top:'84.17006966130195%', left:'83.18614130434783%'}, floor:1, observations:''},
+{name:'CDA15194', department:'CDA', ip:'172.19.141.151', selb:'ZYG3', pos:{top:'76.96372808071102%', left:'80.53668478260869%'}, floor:1, observations:''},
+{name:'CDA12194', department:'CDA', ip:'172.19.141.121', selb:'8KP6', pos:{top:'86.6682680759068%', left:'77.34375%'}, floor:1, observations:''},
+{name:'CDA10094', department:'CDA', ip:'172.19.141.100', selb:'PGL6', pos:{top:'82.1522940187365%', left:'70.95788043478261%'}, floor:1, observations:''},
+{name:'CDA14494', department:'CDA', ip:'172.19.141.144', selb:'3V12', pos:{top:'74.65769877492193%', left:'80.40081521739131%'}, floor:1, observations:''},
+{name:'LVR19394', department:'Linha Verde', ip:'172.19.114.193', selb:'6PL1', pos:{top:'83.20922411722316%', left:'90.72690217391305%'}, floor:1, observations:''},
+{name:'TOX11425', department:'Toxicologia', ip:'172.19.114.25', selb:'0AFP', pos:{top:'54.479942349267354%', left:'51.32472826086957%'}, floor:1, observations:''},
+{name:'TOX11429', department:'Toxicologia', ip:'172.19.114.29', selb:'NDK3', pos:{top:'53.13475858755705%', left:'49.62635869565217%'}, floor:1, observations:''},
+{name:'HEM14094', department:'Hematologia', ip:'172.19.114.140', selb:'0K65', pos:{top:'48.13836175834735%', left:'56.01222826086957%'}, floor:1, observations:''},
+{name:'AML22194', department:'Linha Amarela', ip:'172.19.114.221', selb:'7OL4', pos:{top:'67.93177996637041%', left:'69.7350543478261%'}, floor:1, observations:''},
+{name:'CITO00898', department:'Citometria', ip:'172.19.114.98', selb:'7ZK8', pos:{top:'41.02810473216431%', left:'73.33559782608695%'}, floor:1, observations:''},
+{name:'AIM00817', department:'Linha Vermelha', ip:'172.19.114.172', selb:'3L29', pos:{top:'46.985347105452796%', left:'82.30298913043478%'}, floor:1, observations:''},
+{name:'MIC07894', department:'Microbiologia', ip:'172.19.114.78', selb:'16VX', pos:{top:'14.989190487629115%', left:'27.47961956521739%'}, floor:1, observations:''},
+{name:'MIC24094', department:'Microbiologia', ip:'172.19.114.240', selb:'5G78', pos:{top:'12.49099207302426%', left:'27.4116847826087%'}, floor:1, observations:''},
+{name:'MIC19245', department:'Microbiologia', ip:'172.19.114.245', selb:'YEJ4', pos:{top:'9.320201777564256%', left:'27.34375%'}, floor:1, observations:''},
+{name:'MIC02094', department:'Microbiologia', ip:'172.19.114.20', selb:'ZT230 - PrintServer (MIC02094)', pos:{top:'14.989190487629115%', left:'28.634510869565215%'}, floor:1, observations:''},
+{name:'MIC23994', department:'Microbiologia', ip:'172.19.114.239', selb:'4R83', pos:{top:'13.067499399471535%', left:'28.566576086956523%'}, floor:1, observations:''},
+{name:'MIC02194', department:'Microbiologia', ip:'172.19.114.21', selb:'ZT230 - PrintServer (MIC02194)', pos:{top:'11.241892865721836%', left:'28.634510869565215%'}, floor:1, observations:''},
+{name:'MIC02118', department:'Microbiologia', ip:'172.19.114.118', selb:'ZT230 - PrintServer (MIC02118)', pos:{top:'9.320201777564256%', left:'28.634510869565215%'}, floor:1, observations:''},
+{name:'MIC23894', department:'Microbiologia', ip:'172.19.114.238', selb:'5G71', pos:{top:'9.320201777564256%', left:'30.197010869565215%'}, floor:1, observations:''},
+{name:'VET16694', department:'Veterinaria', selb:'OJN3', ip:'172.19.114.166', pos:{top:'66.2187691576274%', left:'90.89156029686242%'}, floor:1, observations:''},
+{name:'CDA11494', department:'CDA', selb:'8KN4', ip:'172.19.141.114', pos:{top:'74.54615971674862%', left:'79.11613548107458%'}, floor:1, observations:''},
+{name:'GMO11294', department:'NAO SEI', selb:'NQL7', ip:'172.19.114.112', pos:{top:'84.87532685258167%', left:'49.39451034507161%'}, floor:1, observations:''},
+{name:'GMO09594', department:'NAO SEI', selb:'5DM9', ip:'172.19.114.95', pos:{top:'84.87532685258167%', left:'48.20564533963149%'}, floor:1, observations:''},
+{name:'GEN11468', department:'NAO SEI', selb:'YEC2', ip:'172.19.114.68', pos:{top:'86.47674811395113%', left:'47.52629390795142%'}, floor:1, observations:''},
+{name:'CDA14149', department:'NAO SEI', selb:'YEE8', ip:'172.19.114.149', pos:{top:'87.99809831225213%', left:'50.13047439605835%'}, floor:1, observations:''},
+{name:'CDA10592', department:'CDA', selb:'8LO1', ip:'172.19.114.105', pos:{top:'82.31305283439052%', left:'48.82838415200489%'}, floor:1, observations:''},
+{name:'CDA10894', department:'CDA', selb:'3V63', ip:'172.19.141.108', pos:{top:'82.39312389745899%', left:'50.470150111898384%'}, floor:1, observations:''},
+{name:'CDA12994', department:'CDA', selb:'5N14', ip:'172.19.141.129', pos:{top:'82.47319496052747%', left:'52.111916071791875%'}, floor:1, observations:''},
+{name:'CDA10092', department:'CDA', selb:'7ZQ4', ip:'172.19.141.153', pos:{top:'82.39312389745899%', left:'53.866907270298725%'}, floor:1, observations:''},
+{name:'CDA16162', department:'CDA', selb:'7OC4', ip:'172.19.141.162', pos:{top:'82.39312389745899%', left:'55.508673230192215%'}, floor:1, observations:''},
+{name:'CDA12594', department:'CDA', selb:'NDI2', ip:'172.19.141.125', pos:{top:'80.31127625767868%', left:'55.508673230192215%'}, floor:1, observations:''},
+{name:'CDA15094', department:'CDA', selb:'5G98', ip:'172.19.141.150', pos:{top:'80.31127625767868%', left:'53.866907270298725%'}, floor:1, observations:''},
+{name:'CDA16194', department:'CDA', selb:'8LK8', ip:'172.19.114.194', pos:{top:'80.39134732074716%', left:'50.526762731205054%'}, floor:1, observations:''},
+{name:'CDA13694', department:'CDA', selb:'YEJ3', ip:'172.19.141.136', pos:{top:'80.39134732074716%', left:'48.82838415200489%'}, floor:1, observations:''},
+{name:'CDA15294', department:'CDA', selb:'YEO4', ip:'172.19.141.152', pos:{top:'77.2685758610767%', left:'55.225610133658854%'}, floor:1, observations:''},
+{name:'CDA15794', department:'CDA', selb:'XLP6', ip:'172.19.114.157', pos:{top:'77.18850479800822%', left:'56.86737609355236%'}, floor:1, observations:''},
+{name:'CDA13894', department:'CDA', selb:'YEJ7', ip:'172.19.141.138', pos:{top:'77.2685758610767%', left:'58.50914205344585%'}, floor:1, observations:''},
+{name:'CDA13994', department:'CDA', selb:'YEM4', ip:'172.19.141.139', pos:{top:'77.2685758610767%', left:'60.207520632646016%'}, floor:1, observations:''},
+{name:'CDA10594', department:'CDA', selb:'YEK4', ip:'172.19.141.105', pos:{top:'75.34687034743335%', left:'60.207520632646016%'}, floor:1, observations:''},
+{name:'CDA11124', department:'CDA', selb:'YEQ3', ip:'172.19.141.124', pos:{top:'75.42694141050183%', left:'58.50914205344585%'}, floor:1, observations:''},
+{name:'TOX14224', department:'Toxicologia', selb:'3V61', ip:'172.19.114.227', pos:{top:'67.16310353110737%', left:'38.213315217391305%'}, floor:1, observations:''},
+{name:'TOX072', department:'Toxicologia Metais', selb:'3BS2', ip:'172.19.114.72', pos:{top:'69.46913283689646%', left:'35.224184782608695%'}, floor:1, observations:''},
+{name:'TOX11191', department:'Toxicologia', selb:'ZT230 - PrintServer (TOX11191)', ip:'172.19.114.191', pos:{top:'56.129815210999766%', left:'33.542976939203356%'}, floor:1, observations:''},
+{name:'TOX11214', department:'Toxicologia ZT230', selb:'DCR1', ip:'172.19.114.214', pos:{top:'60.14893105933221%', left:'40.31929347826087%'}, floor:1, observations:''},
+{name:'TOX11410', department:'Toxicologia', selb:'NCV8', ip:'172.19.114.10', pos:{top:'60.14893105933221%', left:'38.82472826086957%'}, floor:1, observations:''},
+{name:'TOX11412', department:'Toxicologia', selb:'8KL8', ip:'172.19.114.12', pos:{top:'57.971449661574646%', left:'44.242761988164425%'}, floor:1, observations:''},
+{name:'TOX114184', department:'Toxicologia', selb:'7ZH6', ip:'172.19.114.188', pos:{top:'60.45365261669732%', left:'44.242761988164425%'}, floor:1, observations:''},
+{name:'IMU14094', department:'Linha Amarela', selb:'6PO3', ip:'172.19.114.145', pos:{top:'49.644059102453426%', left:'70.73746782368707%'}, floor:1, observations:''},
+{name:'LAM11491', department:'NAO SEI', selb:'8KQ3', ip:'172.19.114.91', pos:{top:'54.76860713883571%', left:'75.66276570336757%'}, floor:1, observations:''},
+{name:'LVM114225', department:'LINHA VERMELHA', selb:'OJO4', ip:'172.19.114.225', pos:{top:'39.87509007926976%', left:'71.36548913043478%'}, floor:1, observations:''},
+{name:'LVER20694', department:'Linha Vermelha', selb:'NQQ1', ip:'172.19.114.206', pos:{top:'26.03891424453519%', left:'68.98777173913044%'}, floor:1, observations:''},
+{name:'GPR95198', department:'Centro de Comando', selb:'3L17', ip:'172.19.114.198', pos:{top:'38.52990631755945%', left:'79.38179347826086%'}, floor:1, observations:''},
+{name:'GQA90119', department:'Setor de Qualidade', selb:'YWB3', ip:'172.19.114.119', pos:{top:'64.21699258091557%', left:'83.13563145184831%'}, floor:1, observations:''},
+{name:'CPM00115', department:'CPM', selb:'3FO3', ip:'172.19.114.115', pos:{top:'47.40206933653617%', left:'30.259445019416358%'}, floor:1, observations:''},
+{name:'CPM16899', department:'CPM', selb:'5G66', ip:'172.19.114.168', pos:{top:'47.24192721039923%', left:'17.464993056108412%'}, floor:1, observations:''},
+{name:'DNA14994', department:'Genetica Molecular', selb:'8KO5', ip:'172.19.114.181', pos:{top:'41.15652641719526%', left:'60.773646825712746%'}, floor:1, observations:''},
+{name:'COP13694', department:'Genetica Molecular', selb:'YYR5', ip:'172.19.114.136', pos:{top:'41.23659748026373%', left:'59.13188086581924%'}, floor:1, observations:''},
+{name:'BRT09295', department:'Genetica Molecular', selb:'8KO6', ip:'172.19.114.101', pos:{top:'33.06934904727946%', left:'58.84881776928589%'}, floor:1, observations:''},
+{name:'GMO10894', department:'Genetica Molecular', selb:'PNL5', ip:'172.19.114.108', pos:{top:'41.23659748026373%', left:'55.16899751435218%'}, floor:1, observations:''},
+{name:'GMO10794', department:'Genetica Molecular', selb:'YYM1', ip:'172.19.114.107', pos:{top:'41.316668543332206%', left:'53.300781077231996%'}, floor:1, observations:'DRIVER ZD230 (10x3)'},
+{name:'GMO114175', department:'Genetica Molecular', selb:'GC420t - Minietiqueta GMO114175', ip:'172.19.114.175', pos:{top:'38.3540392097987%', left:'48.26225795893816%'}, floor:1, observations:'DRIVER SEM SER EPL (10,8x3)'},
+{name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
+{name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
+{name:'LOG09099', department:'PARDIS', selb:'OQD9', ip:'172.19.114.99', observations:'', floor:1, pos:{top:'94.06677876531347%', left:'43.91983695652174%'}},
+{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'PARDIS', selb:'ZD220 PARDIS', ip:'1111111111', observations:'', floor:1, pos:{top:'93.97069421090559%', left:'46.36548913043478%'}},
+{name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
+{name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
+{name:'LOG09032', department:'CPI', selb:'NBZ7', ip:'172.19.114.32', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'8.746649682880875%'}},
+{name:'LOG00228', department:'CPI', selb:'NDV4', ip:'172.19.114.228', observations:'', floor:1, pos:{top:'61.7347896257929%', left:'6.765208007147343%'}},
+{name:'CPI114195 (PRECISA DE PONTO DE REDE)', department:'CPI', selb:'3T70', ip:'172.19.114.195', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'4.613928473493795%'}},
+{name:'LOG11447', department:'ALMOXARIFADO', selb:'CABTEC LOG11447', ip:'172.19.114.47', observations:'', floor:1, pos:{top:'88.63866681679991%', left:'12.822758272961282%'}},
+{name:'LOG0942', department:'ALMOXARIFADO', selb:'7YP5', ip:'172.19.114.242', observations:'', floor:1, pos:{top:'77.66893117641908%', left:'13.27565922741466%'}},
+{name:'LOG114179', department:'ALMOXARIFADO', selb:'5H66', ip:'172.19.114.179', observations:'', floor:1, pos:{top:'66.05862703149045%', left:'11.916956364054524%'}},
+{name:'LOG252106', department:'ALMOXARIFADO', selb:'5DM8', ip:'172.19.252.106', observations:'', floor:1, pos:{top:'69.34154061729785%', left:'11.916956364054524%'}},
+{name:'LOG114130', department:'ALMOXARIFADO', selb:'CABTEC LOG114130', ip:'172.19.114.130', observations:'', floor:1, pos:{top:'60.05329730135496%', left:'27.14575095754938%'}},
+{name:'LOG09594', department:'ALMOXARIFADO', selb:'ZT230 - PrintServer (LOG09594)', ip:'172.19.114.126', observations:'', floor:1, pos:{top:'58.13159178771159%', left:'27.202363576856055%'}},
+{name:'LOG114165', department:'ALMOXARIFADO', selb:'CABTEC LOG114165', ip:'172.19.114.165', observations:'', floor:1, pos:{top:'77.74900223948754%', left:'29.80654406496298%'}},
+{name:'LOG11440', department:'ALMOXARIFADO', selb:'CABTEC LOG11440', ip:'172.19.114.040', observations:'', floor:1, pos:{top:'74.94651503209097%', left:'30.429282877336377%'}},
+{name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
+{name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
+{name:'DESCOBRIR LIS E IP', department:'LOGISTICA', selb:'TEM Q VER', ip:'A', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
+{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'Colorimetria', selb:'nao tem', ip:'n', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
+];
+
+  function showToast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),3000); }
+  function savePrinters(){ localStorage.setItem('interactiveMapPrinters', JSON.stringify(printerData)); }
+  function loadPrinters(){ const s=localStorage.getItem('interactiveMapPrinters'); printerData = s ? JSON.parse(s) : initialPrinters.concat(initialPrinters2floor); renderAllPrinters(); }
+
+  function debounce(fn, delay) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(()=> fn(...args), delay); };
+  }
+
+  function createPrinterPointElement(printer){
+    const point = document.createElement('button');
+    point.className = `printer-point bg-blue-500`;
+    point.style.top = printer.pos.top;
+    point.style.left = printer.pos.left;
+    point.style.setProperty('--point-color', '#3b82f6');
+    point.dataset.printerSelb = printer.selb;
+    point.setAttribute('aria-label', `Impressora ${printer.name}, SELB ${printer.selb}, Andar ${printer.floor}`);
+    point.innerHTML = `<svg class="printer-point-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>`;
+
+    point.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const selb = e.currentTarget.dataset.printerSelb;
+      const current = printerData.find(p => p.selb === selb);
+      if (!current) return;
+      if (current.floor !== currentFloor) {
+        currentFloor = current.floor;
+        floorSelect.value = currentFloor;
+        updateMapImage();
+        renderAllPrinters();
+      }
+      focusPrinter(current);
+      showDetailsModal(current);
+    });
+
+    point.addEventListener('mouseenter', (e) => {
+      const selb = e.currentTarget.dataset.printerSelb;
+      const current = printerData.find(p => p.selb === selb) || printer;
+      tooltip.innerHTML = `<strong>${current.name}</strong><br>SELB: ${current.selb} (Andar ${current.floor})`;
+      const pointRect = e.currentTarget.getBoundingClientRect();
+      const containerRect = mapContainer.getBoundingClientRect();
+      tooltip.style.top = `${pointRect.top - containerRect.top}px`;
+      tooltip.style.left = `${pointRect.left - containerRect.left}px`;
+      tooltip.classList.add('show');
+    });
+    point.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+
+    return point;
+  }
+
+  function renderAllPrinters(){ mapInner.querySelectorAll('.printer-point').forEach(n=>n.remove()); const fragment = document.createDocumentFragment(); printerData.filter(p => p.floor === currentFloor).forEach(p => { const node = createPrinterPointElement(p); fragment.appendChild(node); }); mapInner.appendChild(fragment); }
+
+  function updateMapImage() {
+    if (currentFloor === 1) { mapImage.src = 'plantanto.jpg'; } else if (currentFloor === 2) { mapImage.src = 'plantanto2.jpg'; }
+    mapImage.onerror = function() { this.onerror = null; this.src = 'https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel'; };
+  }
+
+  // CORREÇÃO: remove transientLabel antes de abrir o modal (evita sobrepor)
+  function showDetailsModal(printer){
+    if (transientLabel) { transientLabel.remove(); transientLabel = null; }
+
+    document.getElementById('modal-title').textContent = printer.name;
+    document.getElementById('modal-department').textContent = printer.department;
+    document.getElementById('modal-selb').textContent = printer.selb;
+    document.getElementById('modal-ip').textContent = printer.ip;
+    document.getElementById('modal-observations').textContent = printer.observations || 'Nenhuma observação.';
+    printerToDeleteSelb = printer.selb;
+
+    document.getElementById('modal-link').href = `http://${printer.ip}`;
+    document.getElementById('modal-link').setAttribute('rel','noopener noreferrer');
+    detailsModal.classList.remove('hidden');
+    detailsModal.setAttribute('aria-hidden','false');
+  }
+  
+  function toggleAddMode(){ 
+    isAddMode = !isAddMode;
+    addPrinterBtn.classList.toggle('bg-[#81B29A]', !isAddMode);
+    addPrinterBtn.classList.toggle('bg-yellow-500', isAddMode);
+    addPrinterBtn.setAttribute('aria-pressed', String(isAddMode));
+    mapContainer.classList.toggle('add-mode', isAddMode);
+    mapContainer.classList.toggle('border-yellow-500', isAddMode);
+    mapContainer.classList.toggle('border-transparent', !isAddMode);
+    if (isAddMode) { showToast('Clique no mapa para posicionar a nova impressora.'); }
+  }
+
+  mapContainer.addEventListener('click', (event) => {
+    if (event.target.closest('.printer-point')) return;
+    const rect = mapContainer.getBoundingClientRect();
+    const coords = { 
+        top: `${((event.clientY - rect.top) / rect.height) * 100}%`, 
+        left: `${((event.clientX - rect.left) / rect.width) * 100}%` 
+    };
+
+    if (isAddMode && repositionTargetSelb) {
+      const p = printerData.find(p => p.selb === repositionTargetSelb);
+      if (p) {
+        p.pos = coords;
+        savePrinters();
+        renderAllPrinters();
+        showToast('Posição da impressora atualizada.');
+      }
+      repositionTargetSelb = null;
+      toggleAddMode();
+      return;
+    }
+
+    if (!isAddMode) return;
+    newPrinterCoords = coords;
+    addPrinterForm.reset();
+    delete addModal.dataset.editingSelb;
+    addModalTitle.textContent = 'Adicionar Nova Impressora';
+    addSubmitBtn.textContent = 'Salvar Impressora';
+    addPrinterForm.querySelector('[name="floor"]').value = String(currentFloor);
+    addModal.classList.remove('hidden');
+    addModal.setAttribute('aria-hidden','false');
+    toggleAddMode();
+  });
+
+  addPrinterForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(addPrinterForm);
+    const name = (formData.get('name') || '').trim();
+    const department = (formData.get('department') || '').trim();
+    const selb = (formData.get('selb') || '').trim();
+    const ip = (formData.get('ip') || '').trim();
+    const observations = (formData.get('observations') || '').trim();
+    const floor = parseInt(formData.get('floor') || currentFloor, 10);
+
+    if (!name || !department || !selb || !ip) {
+      showToast('Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const editingSelb = addModal.dataset.editingSelb;
+    if (editingSelb) {
+      const idx = printerData.findIndex(p => p.selb === editingSelb);
+      if (idx === -1) { showToast('Erro: impressora não encontrada.'); addModal.classList.add('hidden'); return; }
+      if (selb !== editingSelb && printerData.some(p => p.selb === selb)) { showToast('Erro: já existe outra impressora com esse SELB.'); return; }
+
+      printerData[idx].name = name;
+      printerData[idx].department = department;
+      printerData[idx].selb = selb;
+      printerData[idx].ip = ip;
+      printerData[idx].observations = observations;
+      printerData[idx].floor = floor;
+      printerData[idx].pos = newPrinterCoords || printerData[idx].pos;
+
+      savePrinters();
+      renderAllPrinters();
+      addModal.classList.add('hidden');
+      detailsModal.classList.add('hidden');
+      delete addModal.dataset.editingSelb;
+      showToast('Impressora atualizada com sucesso.');
+      return;
+    }
+
+    if (printerData.some(p => p.selb === selb)) { showToast('Erro: já existe uma impressora com esse SELB.'); return; }
+
+    const newPrinter = { name, department, selb, ip, observations, floor, pos: newPrinterCoords };
+    printerData.push(newPrinter);
+    savePrinters();
+    renderAllPrinters();
+    addModal.classList.add('hidden');
+    showToast('Impressora adicionada com sucesso.');
+  });
+
+  addHitbox.addEventListener('click', (e)=>{ e.stopPropagation(); toggleAddMode(); });
+  
+  searchHitbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (searchInput.value.trim()) { searchInput.value = ''; handleSearch(); }
+    searchContainer.classList.toggle('expanded');
+    searchContainer.setAttribute('aria-expanded', String(searchContainer.classList.contains('expanded')));
+    if (searchContainer.classList.contains('expanded')) { searchInput.focus(); } else { searchResultsPanel.style.display = 'none'; }
+  });
+
+  document.addEventListener('click', (e)=>{ 
+      if (!searchContainer.contains(e.target)) { 
+          searchContainer.classList.remove('expanded'); 
+          searchResultsPanel.style.display='none';
+          searchContainer.setAttribute('aria-expanded','false');
+      } 
+  });
+
+  searchForm.addEventListener('submit', (e) => { e.preventDefault(); handleSearch(); });
+  const debouncedHandleSearch = debounce(handleSearch, 160);
+  searchInput.addEventListener('input', debouncedHandleSearch);
+
+  function focusResultByIndex(index) {
+    const items = Array.from(searchResultsPanel.querySelectorAll('.result-item'));
+    if (!items.length) return;
+    index = Math.max(0, Math.min(items.length - 1, index));
+    items[index].focus();
+  }
+
+  function handleSearch() {
+    const term = searchInput.value.toLowerCase().trim();
+    document.querySelectorAll('.printer-point').forEach(p=>p.classList.remove('highlighted'));
+    if (!term) { searchResultsPanel.style.display = 'none'; searchResultsPanel.setAttribute('aria-hidden','true'); return; }
+    const results = printerData.filter(p => (p.name.toLowerCase().includes(term) || (p.selb || '').toLowerCase().includes(term)));
+    searchResultsPanel.innerHTML = '';
+    searchResultsPanel.setAttribute('aria-hidden','false');
+    if (!results.length) {
+        searchResultsPanel.innerHTML = '<div class="p-3 text-center text-gray-500">Nenhum resultado.</div>';
+    } else {
+        results.forEach((r, idx) => {
+            const d = document.createElement('div');
+            d.className = 'result-item p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
+            d.innerHTML = `<div class="font-semibold">${r.name}</div><div class="text-sm text-gray-500">SELB: ${r.selb} (Andar ${r.floor})</div>`;
+            d.tabIndex = 0;
+            d.setAttribute('role','option');
+            d.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                searchResultsPanel.style.display = 'none';
+                searchContainer.classList.remove('expanded');
+                searchInput.value = r.name;
+                if (r.floor !== currentFloor) {
+                  currentFloor = r.floor; floorSelect.value = currentFloor; updateMapImage(); renderAllPrinters();
+                }
+                focusPrinter(r, true);
+            });
+            d.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter') d.click();
+              if (ev.key === 'ArrowDown') { ev.preventDefault(); focusResultByIndex(idx+1); }
+              if (ev.key === 'ArrowUp') { ev.preventDefault(); focusResultByIndex(idx-1); }
+            });
+            searchResultsPanel.appendChild(d);
+        });
+    }
+    searchResultsPanel.style.display = 'block';
+  }
+
+  function focusPrinter(printer, openModal = false) {
+    if (focusResetTimer) clearTimeout(focusResetTimer);
+    if (transientLabel) transientLabel.remove();
+    document.querySelectorAll('.printer-point').forEach(p => p.classList.remove('highlighted'));
+    const point = document.querySelector(`.printer-point[data-printer-selb="${printer.selb}"]`);
+    if (!point) return;
+
+    point.classList.add('highlighted');
+
+    const pRect = point.getBoundingClientRect();
+    const mapRect = mapContainer.getBoundingClientRect();
+
+    const pCenterX = (pRect.left - mapRect.left) + pRect.width / 2;
+    const pCenterY = (pRect.top - mapRect.top) + pRect.height / 2;
+
+    const scale = 1.4;
+    let dx = mapRect.width / 2 - pCenterX * scale;
+    let dy = mapRect.height / 2 - pCenterY * scale;
+
+    const scaledWidth = mapRect.width * scale;
+    const scaledHeight = mapRect.height * scale;
+    const maxDx = 0; const minDx = mapRect.width - scaledWidth;
+    const maxDy = 0; const minDy = mapRect.height - scaledHeight;
+    dx = Math.min(maxDx, Math.max(minDx, dx));
+    dy = Math.min(maxDy, Math.max(minDy, dy));
+
+    mapInner.style.transform = `scale(${scale}) translate(${dx}px, ${dy}px)`;
+
+    const containerRectAfter = mapContainer.getBoundingClientRect();
+    const scrollLeft = window.scrollX + containerRectAfter.left - (window.innerWidth - containerRectAfter.width) / 2;
+    const scrollTop = window.scrollY + containerRectAfter.top - (window.innerHeight - containerRectAfter.height) / 2;
+    window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
+
+    transientLabel = document.createElement('div');
+    transientLabel.className = 'focus-label';
+    transientLabel.innerHTML = `${printer.name} <span class="font-normal text-xs text-gray-500 ml-2">(${printer.selb})</span>`;
+    transientLabel.style.left = `50%`;
+    transientLabel.style.top = `50%`;
+    transientLabel.style.transform = `translate(-50%, calc(-100% - 20px))`;
+    mapContainer.appendChild(transientLabel);
+
+    focusResetTimer = setTimeout(() => {
+        mapInner.style.transform = '';
+        point.classList.remove('highlighted');
+        if (transientLabel) { transientLabel.remove(); transientLabel = null; }
+    }, 3500);
+
+    if (openModal) {
+      setTimeout(() => {
+          const current = printerData.find(p => p.selb === printer.selb);
+          if (current) { showDetailsModal(current); }
+      }, 500);
+    }
+  }
+
+  deletePrinterBtn.addEventListener('click', () => {
+    printerData = printerData.filter(p => p.selb !== printerToDeleteSelb);
+    savePrinters(); renderAllPrinters(); detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+    showToast('Impressora removida com sucesso!');
+  });
+
+  editPrinterBtn.addEventListener('click', () => {
+    const selb = printerToDeleteSelb;
+    const p = printerData.find(x => x.selb === selb);
+    if (!p) return showToast('Impressora não encontrada.');
+
+    addPrinterForm.reset();
+    addPrinterForm.querySelector('[name="name"]').value = p.name;
+    addPrinterForm.querySelector('[name="department"]').value = p.department;
+    addPrinterForm.querySelector('[name="selb"]').value = p.selb;
+    addPrinterForm.querySelector('[name="ip"]').value = p.ip;
+    addPrinterForm.querySelector('[name="observations"]').value = p.observations || '';
+    addPrinterForm.querySelector('[name="floor"]').value = String(p.floor || currentFloor);
+    newPrinterCoords = p.pos || newPrinterCoords;
+
+    addModal.dataset.editingSelb = p.selb;
+    addModalTitle.textContent = 'Editar Impressora';
+    addSubmitBtn.textContent = 'Salvar Alterações';
+    detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+    addModal.classList.remove('hidden'); addModal.setAttribute('aria-hidden','false');
+  });
+
+  repositionPrinterBtn.addEventListener('click', () => {
+    const selb = printerToDeleteSelb;
+    const p = printerData.find(x => x.selb === selb);
+    if (!p) return showToast('Impressora não encontrada.');
+    repositionTargetSelb = selb;
+    if (!isAddMode) toggleAddMode();
+    detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+    showToast('Clique no mapa para reposicionar a impressora selecionada.');
+  });
+
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) {
+        detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+        addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
+        delete addModal.dataset.editingSelb;
+      }
+    });
+  });
+
+  document.querySelectorAll('.close-modal-btn').forEach(b => b.addEventListener('click', () => {
+    detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+    addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
+    delete addModal.dataset.editingSelb;
+  }));
+
+  floorSelect.addEventListener('change', (e) => {
+    currentFloor = parseInt(e.target.value, 10);
+    updateMapImage(); renderAllPrinters();
+  });
+    
+  document.addEventListener('keydown', (e) => {
+      if (e.key === "Escape") {
+          detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+          addModal.classList.add('hidden'); addModal.setAttribute('aria-hidden','true');
+          searchResultsPanel.style.display = 'none';
+          if (searchContainer.classList.contains('expanded')) {
+              searchContainer.classList.remove('expanded'); searchInput.value = '';
+          }
+          delete addModal.dataset.editingSelb;
+      }
+  });
+
+  loadPrinters(); updateMapImage();
+});
+</script>
+
+</body>
+</html>
