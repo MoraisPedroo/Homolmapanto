@@ -6,6 +6,11 @@
   <title>MapaNto</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Evitar cache pesado durante desenvolvimento -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- FAVICON: coloque seu arquivo aqui com nome favicon.png na mesma pasta -->
   <link rel="icon" type="image/png" href="../MapaNto/pardinilogo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="../MapaNto/pardinilogo.png">
@@ -128,6 +133,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // -------------------- CONFIG --------------------
+  // Se true: sempre carrega o array hardcoded do código (ignora localStorage).
+  // Troque para false se quiser permitir persistência entre reloads.
+  const FORCE_HARDCODED = true;
+  const LOCALSTORAGE_KEY = 'interactiveMapPrinters';
+  // -------------------------------------------------
+
   const mapContainer = document.getElementById('map-container');
   const mapInner = document.getElementById('map-inner');
   const tooltip = document.getElementById('map-tooltip');
@@ -166,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'MIC02117', department:'Micobacterias', ip:'172.19.114.117', selb:'GC420t - Minietiqueta - MIC02117', pos:{top:'17.775642565457602%', left:'41.88179347826087%'}, floor:1, observations:'DRIVER GC420T (5x3)'},
 {name:'MIC02494', department:'Micobacterias', ip:'172.19.114.24', selb:'4Q88', pos:{top:'7.526679928436487%', left:'45.71469009013791%'}, floor:1, observations:''},
 {name:'CDA10394', department:'CAC', ip:'172.19.141.103', selb:'SPR2', pos:{top:'77.15589718952678%', left:'83.86548913043478%'}, floor:1, observations:''},
-{name:'CDA13094', department:'CDA', ip:'172.19.141.130', selb:'8KQ6', pos:{top:'84.17006966130195%', left:'83.18614130434783%'}, floor:1, observations:''},
+{name:'CDA13094', department:'CDA', ip:'172.19.141.130', selb:'8KQ6', pos:{top:'83.78573144367043%', left:'81.35190217391305%'}, floor:1, observations:''},
 {name:'CDA15194', department:'CDA', ip:'172.19.141.151', selb:'ZYG3', pos:{top:'76.96372808071102%', left:'80.53668478260869%'}, floor:1, observations:''},
 {name:'CDA12194', department:'CDA', ip:'172.19.141.121', selb:'8KP6', pos:{top:'86.6682680759068%', left:'77.34375%'}, floor:1, observations:''},
 {name:'CDA10094', department:'CDA', ip:'172.19.141.100', selb:'PGL6', pos:{top:'82.1522940187365%', left:'70.95788043478261%'}, floor:1, observations:''},
@@ -231,12 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
 {name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
 {name:'LOG09099', department:'PARDIS', selb:'OQD9', ip:'172.19.114.99', observations:'', floor:1, pos:{top:'94.06677876531347%', left:'43.91983695652174%'}},
-{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'PARDIS', selb:'ZD220 PARDIS', ip:'1111111111', observations:'', floor:1, pos:{top:'93.97069421090559%', left:'46.36548913043478%'}},
+{name:'LOG114127', department:'PARDIS', selb:'32F2', ip:'172.19.114.127', observations:'', floor:1, pos:{top:'93.97069421090559%', left:'46.36548913043478%'}},
 {name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
 {name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
 {name:'LOG09032', department:'CPI', selb:'NBZ7', ip:'172.19.114.32', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'8.746649682880875%'}},
 {name:'LOG00228', department:'CPI', selb:'NDV4', ip:'172.19.114.228', observations:'', floor:1, pos:{top:'61.7347896257929%', left:'6.765208007147343%'}},
-{name:'CPI114195 (PRECISA DE PONTO DE REDE)', department:'CPI', selb:'3T70', ip:'172.19.114.195', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'4.613928473493795%'}},
+{name:'CPI114195', department:'CPI', selb:'3T70', ip:'172.19.114.195', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'4.613928473493795%'}},
 {name:'LOG11447', department:'ALMOXARIFADO', selb:'CABTEC LOG11447', ip:'172.19.114.47', observations:'', floor:1, pos:{top:'88.63866681679991%', left:'12.822758272961282%'}},
 {name:'LOG0942', department:'ALMOXARIFADO', selb:'7YP5', ip:'172.19.114.242', observations:'', floor:1, pos:{top:'77.66893117641908%', left:'13.27565922741466%'}},
 {name:'LOG114179', department:'ALMOXARIFADO', selb:'5H66', ip:'172.19.114.179', observations:'', floor:1, pos:{top:'66.05862703149045%', left:'11.916956364054524%'}},
@@ -247,9 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'LOG11440', department:'ALMOXARIFADO', selb:'CABTEC LOG11440', ip:'172.19.114.040', observations:'', floor:1, pos:{top:'74.94651503209097%', left:'30.429282877336377%'}},
 {name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
 {name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
-{name:'DESCOBRIR LIS E IP', department:'LOGISTICA', selb:'TEM Q VER', ip:'A', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
-{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'Colorimetria', selb:'nao tem', ip:'n', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}},
-{name:'teste sala t.i', department:'t.i', selb:'8ln1', ip:'172.19.114.114', observations:'', floor:1, pos:{top:'10.84912266384412%', left:'81.14326726683888%'}}
+{name:'LOG114164', department:'LOGISTICA', selb:'YEL3', ip:'172.19.114.164', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
+{name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}},
+{name:'CAF114134', department:'CAF', selb:'32F1', ip:'172.19.114.134', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
+{name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
+{name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
+{name:'CPI114210', department:'MONTAGEM DE KITS', selb:'5H62', ip:'172.19.114.210', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}}
 ];
 
   // Comandos ZPL
@@ -278,7 +293,37 @@ P5
   const CALIBRAGEM = `~jc^xa^jus^xz`;
 
   function showToast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),3000); }
-  function loadPrinters(){ printerData = initialPrinters.concat(initialPrinters2floor); renderAllPrinters(); }
+
+  // savePrinters respeita a flag
+  function savePrinters(){
+    if (FORCE_HARDCODED) {
+      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ /* ignore */ }
+      return;
+    }
+    try { localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(printerData)); } catch(e){ console.warn('Erro ao gravar localStorage', e); }
+  }
+
+  function loadPrinters(){
+    if (FORCE_HARDCODED) {
+      printerData = (Array.isArray(initialPrinters) ? initialPrinters.slice() : []).concat(Array.isArray(initialPrinters2floor) ? initialPrinters2floor.slice() : []);
+      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ /* ignore */ }
+      renderAllPrinters();
+      return;
+    }
+
+    try {
+      const s = localStorage.getItem(LOCALSTORAGE_KEY);
+      if (s) {
+        printerData = JSON.parse(s);
+      } else {
+        printerData = (Array.isArray(initialPrinters) ? initialPrinters.slice() : []).concat(Array.isArray(initialPrinters2floor) ? initialPrinters2floor.slice() : []);
+      }
+    } catch(e) {
+      console.warn('Erro ao ler localStorage, usando hardcoded', e);
+      printerData = (Array.isArray(initialPrinters) ? initialPrinters.slice() : []).concat(Array.isArray(initialPrinters2floor) ? initialPrinters2floor.slice() : []);
+    }
+    renderAllPrinters();
+  }
 
   function debounce(fn, delay) {
     let t;
@@ -571,7 +616,9 @@ P5
       }
   });
 
-  loadPrinters(); updateMapImage();
+  // load & render
+  loadPrinters();
+  updateMapImage();
 });
 </script>
 
