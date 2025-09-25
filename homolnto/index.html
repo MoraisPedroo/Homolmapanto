@@ -163,13 +163,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPrinterIp = '';
 
   const initialPrinters2floor = [
-{name:'TROCAR IMPRESSORA, COLOCAR LIS E IP', department:'CAF', selb:'ZD220 CAF', ip:'111111', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
+{name:'CAF114134', department:'CAF', selb:'32F1', ip:'172.19.114.134', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
 {name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
 {name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
-{name:'5H62', department:'MONTAGEM DE KITS', selb:'5H62', ip:'DESCOBRIR IP', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}} ];
+{name:'CPI114210', department:'MONTAGEM DE KITS', selb:'5H62', ip:'172.19.114.210', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}}
+ ];
 
   const initialPrinters = [
-{name:'CDA00030', department:'Customer Service', ip:'172.19.114.30', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
+{name:'teste t.i', department:'Customer Service', ip:'172.19.114.114', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
 {name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
 {name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
 {name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
@@ -260,11 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
 {name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
 {name:'LOG114164', department:'LOGISTICA', selb:'YEL3', ip:'172.19.114.164', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
-{name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}},
-{name:'CAF114134', department:'CAF', selb:'32F1', ip:'172.19.114.134', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
-{name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
-{name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
-{name:'CPI114210', department:'MONTAGEM DE KITS', selb:'5H62', ip:'172.19.114.210', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}}
+{name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
 ];
 
   // Comandos ZPL
@@ -398,51 +395,207 @@ P5
     detailsModal.setAttribute('aria-hidden','false');
   }
   
-  async function checkStatus(ip) {
-    const display = document.getElementById('status-display');
-    const sq = document.getElementById('status-sq');
-    const statusText = document.getElementById('status-text');
-    const message = document.getElementById('status-message');
+ // Substitua sua função checkStatus por esta (sem debug)
+async function checkStatus(ip) {
+  const display = document.getElementById('status-display');
+  const sq = document.getElementById('status-sq');
+  const statusText = document.getElementById('status-text');
+  const message = document.getElementById('status-message');
 
-    display.classList.add('hidden');
-    sq.style.background = '#ccc';
-    statusText.innerText = '--';
-    message.innerText = '';
+  // reset visual
+  display.classList.add('hidden');
+  sq.style.background = '#ccc';
+  statusText.innerText = '--';
+  statusText.style.color = '';
+  message.innerText = '';
 
-    if (!ip) { showToast('IP inválido!'); return; }
+  if (!ip) { showToast('IP inválido!'); return; }
 
-    try {
-      const res = await fetch(`proxy.php?ip=${encodeURIComponent(ip)}`);
+  const TOTAL_TIMEOUT = 2000; // ms
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const timeoutId = setTimeout(() => controller.abort(), TOTAL_TIMEOUT);
+
+  try {
+    // tenta JSON com body_base64 primeiro
+    let res = await fetch(`proxy.php?ip=${encodeURIComponent(ip)}&as_json=1`, { cache: 'no-store', signal });
+
+    // se retorno não OK, tenta fetch simples (corpo bruto) com o mesmo signal
+    if (!res.ok) {
+      res = await fetch(`proxy.php?ip=${encodeURIComponent(ip)}`, { cache: 'no-store', signal });
       if (!res.ok) throw new Error('Erro HTTP ' + res.status);
-      const json = await res.json();
+    }
 
-      let ok = false;
-      if (json.color && json.color.toLowerCase() === 'green') ok = true;
-      else {
-        const s = (json.status || '').toLowerCase();
-        if (s.includes('aguardo') || s.includes('pronto') || s.includes('ready') || s.includes('ok')) ok = true;
-      }
+    clearTimeout(timeoutId); // ok, respondeu antes do timeout
 
-      if (ok) {
-        sq.style.background = 'green';
-        statusText.style.color = 'green';
-        statusText.innerText = 'Ready';
-      } else {
-        sq.style.background = 'red';
-        statusText.style.color = 'red';
-        statusText.innerText = 'Pause';
-      }
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-      message.innerText = json.message || json.status || 'Condição verificada.';
-      display.classList.remove('hidden');
-    } catch (err) {
-      display.classList.remove('hidden');
-      sq.style.background = 'red';
-      statusText.style.color = 'red';
-      statusText.innerText = 'Pause';
-      message.innerText = `Erro ao conectar: ${err.message}`;
+    if (ct.includes('application/json')) {
+      const payload = await res.json();
+      const bodyText = payload.body_base64 ? base64ToUtf8(payload.body_base64) : (payload.raw_html || payload.raw_response || JSON.stringify(payload));
+      applyZebraHeuristics(bodyText, sq, statusText, message, display);
+      return;
+    }
+
+    // texto/html
+    const text = await res.text();
+    applyZebraHeuristics(text, sq, statusText, message, display);
+
+  } catch (err) {
+    clearTimeout(timeoutId);
+
+    // detecta abort/timeout
+    const isAbort = err && (err.name === 'AbortError' || /aborted/i.test(err.message) || /The user aborted a request/i.test(err.message));
+    display.classList.remove('hidden');
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+
+    if (isAbort) {
+      statusText.innerText = 'Erro de conexão';
+      message.innerText = 'Falta de rede';
+      return;
+    }
+
+    const errMsg = (err && err.message) ? err.message : String(err);
+    if (errMsg.includes('Erro HTTP 502') || errMsg.includes('502')) {
+      statusText.innerText = 'Erro de conexão';
+      message.innerText = 'Verifique se o cabo de rede está bem conectado';
+    } else {
+      statusText.innerText = 'Erro';
+      message.innerText = `Erro ao conectar: ${errMsg}`;
     }
   }
+}
+
+
+// Heurística especializada (mantida conforme seu pedido)
+function applyZebraHeuristics(raw, sq, statusText, message, display) {
+  const lower = (raw || '').toLowerCase();
+
+  // extrai H3s (mantendo posições — alguns H3 podem ser vazios)
+  const h3s = [];
+  raw.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (m, g1) => {
+    const cleaned = g1.replace(/<[^>]+>/g, '').trim();
+    h3s.push(cleaned); // pode ser ''
+    return m;
+  });
+
+  // procura índice do H3 de status
+  let statusH3Index = h3s.findIndex(h => /status[:\s]/i.test(h) || /em pausa|em aguard|aguardo|status/i.test(h));
+  if (statusH3Index === -1) {
+    statusH3Index = h3s.findIndex(h => /em pausa|pausa|aguardo|em aguard/i.test(h));
+  }
+
+  const statusH3 = statusH3Index >= 0 ? h3s[statusH3Index] : '';
+  let condH3 = (statusH3Index >= 0 && (statusH3Index + 1) < h3s.length) ? h3s[statusH3Index + 1] : '';
+  if (!condH3) {
+    const found = h3s.find(h => /condi|erro|falta|cab|papel|paper/i.test(h));
+    condH3 = found || '';
+  }
+
+  const s = (statusH3 || '').toLowerCase();
+  const e = (condH3 || '').toLowerCase();
+
+  // 1) EM AGUARDO / READY (pronto)
+  if (s.includes('aguardo') || s.includes('em aguardo') || s.includes('ready') || s.includes('waiting') || (lower.includes('status:') && /aguardo|ready|waiting/.test(lower))) {
+    sq.style.background = 'green';
+    statusText.style.color = 'green';
+    statusText.innerText = 'Pronto para impressão';
+    message.innerText = 'Tudo ok para imprimir';
+    display.classList.remove('hidden');
+    return;
+  }
+
+  // 2) EM PAUSA / PAUSE com H3 seguinte vazio -> instrução feed
+  if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && (!condH3 || condH3.trim() === '')) {
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+    statusText.innerText = 'Em Pausa';
+    message.innerText = 'Para despausar pressione o botão feed';
+    display.classList.remove('hidden');
+    return;
+  }
+
+  // 3) EM PAUSA / PAUSE com CAB. ABERTO / HEAD OPEN
+  const cabAbertoDetected = ((/cab|cab\./i.test(e) && /abert/i.test(e)) || (/cabec/i.test(e) && /abert/i.test(e)) || (/cab/i.test(e) && /abert/i.test(e)) || /head open/i.test(e) || /open head/i.test(e));
+  if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && cabAbertoDetected) {
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+    statusText.innerText = 'Em Erro';
+    message.innerText = 'Impressora aberta — feche a impressora';
+    display.classList.remove('hidden');
+    return;
+  }
+
+  // 4) EM PAUSA / PAUSE com FALTA PAPEL / PAPER OUT
+  const faltaPapelDetected = /falta\s*papel|falta de papel|papel/i.test(e) || /falta.*papel/i.test(lower) || /paper/i.test(e) || /paper out/i.test(lower) || /out of paper/i.test(lower);
+  if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && faltaPapelDetected) {
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+    statusText.innerText = 'Em Erro';
+    message.innerText = 'Impressora com erro de etiqueta/ribon — verifique os insumos';
+    display.classList.remove('hidden');
+    return;
+  }
+
+  // fallback genérico
+  const okKeywords = ['aguardo','pronto','ready','ok','waiting'];
+  const pauseKeywords = ['pausa','pause','paused','error','erro','aberto','open','falta papel','paper'];
+
+  const anyOk = okKeywords.some(k => lower.includes(k));
+  const anyPause = pauseKeywords.some(k => lower.includes(k));
+
+  if (anyOk && !anyPause) {
+    sq.style.background = 'green';
+    statusText.style.color = 'green';
+    statusText.innerText = 'Pronto para impressão';
+    message.innerText = 'Tudo ok para imprimir';
+  } else if (anyPause) {
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+    statusText.innerText = 'Em Erro';
+    message.innerText = (condH3 ? condH3 : 'Condição de erro detectada.');
+  } else {
+    sq.style.background = 'red';
+    statusText.style.color = 'red';
+    statusText.innerText = 'Desconhecido';
+    message.innerText = (condH3 ? condH3 : 'Status não identificado');
+  }
+
+  display.classList.remove('hidden');
+}
+
+// Decodifica base64 -> texto UTF-8 de forma segura.
+// Usa atob + TextDecoder quando disponível; fallback para string raw.
+function base64ToUtf8(b64) {
+  if (!b64) return '';
+  try {
+    // atob lança se não for base64 válido
+    const binary = atob(b64);
+    // converte para Uint8Array (cada char -> byte)
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    // se TextDecoder disponível, usa para obter UTF-8 corretamente
+    if (typeof TextDecoder !== 'undefined') {
+      try {
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch (e) {
+        // cai para fallback abaixo
+      }
+    }
+
+    // fallback simples: interpreta como Latin1 -> retorna string
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
+    return out;
+  } catch (e) {
+    // se qualquer coisa falhar, devolve o input original (ou string vazia)
+    return b64;
+  }
+}
+
+
 
   async function sendCommand(cmd, actionName) {
     if (!currentPrinterIp) { showToast('IP inválido!'); return; }
