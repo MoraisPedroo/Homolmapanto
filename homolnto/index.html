@@ -11,7 +11,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
-  <!-- FAVICON: coloque seu arquivo aqui com nome favicon.png na mesma pasta -->
+
   <link rel="icon" type="image/png" href="../MapaNto/pardinilogo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="../MapaNto/pardinilogo.png">
   <meta name="theme-color" content="#F3F0EC">
@@ -47,7 +47,7 @@
     #map-tooltip { position:absolute; background:#3D405B; color:white; padding:8px 12px; border-radius:6px; font-size:.875rem; line-height:1.4; opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s; pointer-events:none; z-index:60; transform: translate(-50%,-125%); white-space:nowrap; }
     #map-tooltip.show { opacity:1; visibility:visible; }
 
-    /* CORREÇÃO AQUI: z-index reduzido para não cobrir o modal */
+    /*  z-index reduzido para não cobrir o modal */
     .focus-label { position:absolute; transform: translate(-50%,-120%); background: rgba(255,255,255,0.95); border-radius:6px; padding:6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index:45; font-weight:600; white-space:nowrap; }
 
     #map-inner { position: relative; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 250ms cubic-bezier(.2,.9,.3,1); }
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
  ];
 
   const initialPrinters = [
-{name:'teste t.i', department:'Customer Service', ip:'172.19.114.114', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
+{name:'CDA00030', department:'Customer Service', ip:'172.19.114.30', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
 {name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
 {name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
 {name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
 ];
 
-  // Comandos ZPL
+  // Comandos EPL
   const TESTE_CABECA = `I8,A,001
 
 Q240,024
@@ -395,7 +395,6 @@ P5
     detailsModal.setAttribute('aria-hidden','false');
   }
   
- // Substitua sua função checkStatus por esta (sem debug)
 async function checkStatus(ip) {
   const display = document.getElementById('status-display');
   const sq = document.getElementById('status-sq');
@@ -452,14 +451,14 @@ async function checkStatus(ip) {
 
     if (isAbort) {
       statusText.innerText = 'Erro de conexão';
-      message.innerText = 'Falta de rede';
+      message.innerText = 'Falta de rede-Verifique se o cabo de rede(internet) está bem conectado';
       return;
     }
 
     const errMsg = (err && err.message) ? err.message : String(err);
     if (errMsg.includes('Erro HTTP 502') || errMsg.includes('502')) {
       statusText.innerText = 'Erro de conexão';
-      message.innerText = 'Verifique se o cabo de rede está bem conectado';
+      message.innerText = 'Verifique se o cabo de rede(internet) está bem conectado';
     } else {
       statusText.innerText = 'Erro';
       message.innerText = `Erro ao conectar: ${errMsg}`;
@@ -468,7 +467,7 @@ async function checkStatus(ip) {
 }
 
 
-// Heurística especializada (mantida conforme seu pedido)
+// Heurística especializada 
 function applyZebraHeuristics(raw, sq, statusText, message, display) {
   const lower = (raw || '').toLowerCase();
 
@@ -554,7 +553,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = (condH3 ? condH3 : 'Condição de erro detectada.');
+    message.innerText = (condH3 ? condH3 : 'Condição de erro detectada-Verifique se o cabo de rede(internet) está bem conectado.');
   } else {
     sq.style.background = 'red';
     statusText.style.color = 'red';
