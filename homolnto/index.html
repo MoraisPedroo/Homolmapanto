@@ -3,13 +3,91 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>MapaNto</title>
+  <title>MapaNto - Acesso Restrito</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <script type="module">
+    // Importações do Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // Sua configuração
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1IF4Bt_g9jOdJbssEszdeZ2-3FJ2JsPY",
+      authDomain: "mapanto-3e05c.firebaseapp.com",
+      projectId: "mapanto-3e05c",
+      storageBucket: "mapanto-3e05c.firebasestorage.app",
+      messagingSenderId: "56800934624",
+      appId: "1:56800934624:web:bf0d51cc47230b12fb6e85",
+      measurementId: "G-G1D32075W9"
+    };
+
+    // Inicializa Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Elementos DOM
+    const loginScreen = document.getElementById('login-screen');
+    const appContent = document.getElementById('app-content');
+    const loginForm = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginError = document.getElementById('login-error');
+    const btnLogin = document.getElementById('btn-login');
+    const btnLogout = document.getElementById('btn-logout-sidebar'); // Vamos criar este botão no painel
+
+    // Monitora estado da autenticação (Persistência)
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Usuário logado: Mostra o App, esconde Login
+        loginScreen.classList.add('hidden');
+        appContent.classList.remove('hidden');
+        console.log("Usuário autenticado:", user.email);
+      } else {
+        // Usuário não logado: Mostra Login, esconde App
+        loginScreen.classList.remove('hidden');
+        appContent.classList.add('hidden');
+      }
+    });
+
+    // Função de Login
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = emailInput.value;
+      const password = passwordInput.value;
+
+      // UI Loading
+      btnLogin.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+      loginError.classList.add('hidden');
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          // Sucesso é tratado pelo onAuthStateChanged acima
+        })
+        .catch((error) => {
+          btnLogin.textContent = "Entrar";
+          loginError.textContent = "Email ou senha incorretos.";
+          loginError.classList.remove('hidden');
+          console.error(error.code, error.message);
+        });
+    });
+
+    // Função de Logout (Vamos atrelar ao botão no painel)
+    // Expondo a função para o escopo global para usar no onclick se necessário, 
+    // ou adicionando listener se o elemento já existir
+    window.logoutApp = () => {
+        signOut(auth).then(() => {
+            alert("Desconectado com sucesso");
+        }).catch((error) => {
+            console.error("Erro ao sair", error);
+        });
+    };
+
+  </script>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-
   <link rel="icon" type="image/png" href="./pardinilogo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./pardinilogo.png">
   <meta name="theme-color" content="#F3F0EC">
@@ -18,24 +96,15 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
 
-    /* pontos da impressora: usamos variável --point-color para controlar a cor do halo */
-    .printer-point { 
-      position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer;
-      transition: all 0.25s ease; display:flex; align-items:center; justify-content:center;
-      transform:translate(-50%,-50%); z-index:20;
-      --point-color: #3b82f6; /* fallback */
-    }
-    .printer-point::before { 
-      content:''; position:absolute; width:100%; height:100%; border-radius:9999px;
-      animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; 
-    }
+    /* --- SEUS ESTILOS ANTIGOS DO MAPA (MANTIDOS) --- */
+    .printer-point { position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer; transition: all 0.25s ease; display:flex; align-items:center; justify-content:center; transform:translate(-50%,-50%); z-index:20; --point-color: #3b82f6; }
+    .printer-point::before { content:''; position:absolute; width:100%; height:100%; border-radius:9999px; animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; }
     .printer-point:hover { transform: translate(-50%, -50%) scale(1.25); z-index:25; }
     .printer-point-icon{ width:14px; height:14px; color:white; z-index:30; }
     @keyframes pulse { 0%{transform:scale(0.95);}70%{transform:scale(1);}100%{transform:scale(0.95);} }
     .highlighted { transform: translate(-50%, -50%) scale(1.6) !important; z-index:60 !important; transition: transform .2s ease; }
     .highlighted::before { animation: highlight-pulse 1s infinite !important; background-color: rgba(59,130,246,0.95) !important; }
     @keyframes highlight-pulse { 0%{box-shadow:0 0 0 0 rgba(59,130,246,0.8);}70%{box-shadow:0 0 0 18px rgba(59,130,246,0);}100%{box-shadow:0 0 0 0 rgba(59,130,246,0);} }
-
     .icon-hitbox { display:inline-flex; align-items:center; justify-content:center; padding:8px; border-radius:9999px; cursor:pointer; -webkit-tap-highlight-color: transparent; }
     .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:40; display:flex; align-items:center; justify-content:center; }
     .modal-content { z-index:50; }
@@ -44,38 +113,16 @@
     .toast.show { opacity:1; transform:translateY(0); }
     #map-tooltip { position:absolute; background:#3D405B; color:white; padding:8px 12px; border-radius:6px; font-size:.875rem; line-height:1.4; opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s; pointer-events:none; z-index:60; transform: translate(-50%,-125%); white-space:nowrap; }
     #map-tooltip.show { opacity:1; visibility:visible; }
-
-    /* CORREÇÃO AQUI: z-index reduzido para não cobrir o modal */
     .focus-label { position:absolute; transform: translate(-50%,-120%); background: rgba(255,255,255,0.95); border-radius:6px; padding:6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index:45; font-weight:600; white-space:nowrap; }
-
     #map-inner { position: relative; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 250ms cubic-bezier(.2,.9,.3,1); }
-
-    /* busca expandida */
     #search-input { transition: width 300ms ease-in-out; width: 0; padding-left: 0; padding-right: 0; }
     #search-container.expanded #search-input { width: 250px; padding-left: 1rem; padding-right: 0.5rem; }
     #search-results { position: absolute; top: 110%; right: 0; width: 300px; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto; display: none; }
     .result-item:hover, .result-item:focus { background-color: #f0f0f0; outline: none; }
-
-    /* Estilos para status na modal */
     .square { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
     .status-row { display: flex; align-items: center; gap: 10px; }
     .status-text { font-weight: 700; font-size: 18px; }
-
-    /* ---------------- IP Tools Sidebar ---------------- */
-    #ip-tools-sidebar {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 350px; /* opção escolhida */
-      height: 100vh;
-      background: white;
-      z-index: 60;
-      box-shadow: -10px 0 30px rgba(0,0,0,0.08);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    #ip-tools-sidebar { position: fixed; top: 0; right: 0; width: 350px; height: 100vh; background: white; z-index: 60; box-shadow: -10px 0 30px rgba(0,0,0,0.08); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
     #ip-tools-sidebar .header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     #ip-tools-sidebar h3 { margin:0; font-size:1.05rem; }
     #ip-tools-sidebar .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
@@ -84,153 +131,170 @@
     #panel-buttons { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
     #panel-log { height: 200px; overflow-y: auto; background:#0f172a; color:#d1fae5; padding:12px; border-radius:8px; font-family: ui-monospace, Menlo, Monaco, monospace; font-size:12px; }
     #panel-current-ip { padding:8px; background:#f3f4f6; border-radius:6px; font-family: ui-monospace, Menlo, Monaco, monospace; }
-    @media (max-width: 900px) {
-      #ip-tools-sidebar { width: 320px; }
-      #map-container { margin-right: 320px; } /* adjust map area */
-    }
-    @media (max-width: 720px) {
-      /* telas pequenas: empilha o painel embaixo para não quebrar layout */
-      #ip-tools-sidebar { position: relative; width: 100%; height: auto; box-shadow:none; }
-      #main-wrapper { display:block; }
-      #map-and-content { margin-right: 0; }
-    }
-    /* adiciona margem à direita do container principal para não ficar escondido atrás do painel */
+    @media (max-width: 900px) { #ip-tools-sidebar { width: 320px; } #map-container { margin-right: 320px; } }
+    @media (max-width: 720px) { #ip-tools-sidebar { position: relative; width: 100%; height: auto; box-shadow:none; } #main-wrapper { display:block; } #map-and-content { margin-right: 0; } .container-with-sidebar { margin-right: 0; } }
     .container-with-sidebar { margin-right: 360px; }
-   
-/* --- CORREÇÃO: botão collapse fixado fora do painel --- */
-#collapse-panel {
-  position: absolute;
-  left: -36px;        /* fica fora do painel */
-  top: 10px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 6px 8px;
-  border-radius: 8px;
-  z-index: 9999;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-}
-#ip-tools-sidebar.collapsed {
-  transform: translateX(100%);
-  transition: transform .28s ease;
-}
+    #collapse-panel { position: absolute; left: -36px; top: 10px; background: #ffffff; border: 1px solid #e5e7eb; padding: 6px 8px; border-radius: 8px; z-index: 9999; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    #ip-tools-sidebar.collapsed { transform: translateX(100%); transition: transform .28s ease; }
 
-</style>
+    /* --- ESTILO NOVO PARA TELA DE LOGIN --- */
+    .login-bg {
+        background-color: #F3F0EC;
+        background-image: radial-gradient(#E07A5F 0.5px, transparent 0.5px), radial-gradient(#3D405B 0.5px, #F3F0EC 0.5px);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+    }
+  </style>
 </head>
-<body class="bg-[#F3F0EC] text-[#3D405B]">
-  <div id="side-actions" class="fixed top-4 right-16 z-30 flex flex-col items-end gap-3">
-    <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
-      <form id="search-form" class="flex items-center" role="search">
-        <input id="search-input" type="text" placeholder="Buscar por Nome ou SELB..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar impressora">
-        <div id="search-hitbox" class="icon-hitbox" title="Buscar">
-            <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600" aria-label="Abrir pesquisa">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+<body class="bg-[#F3F0EC] text-[#3D405B] h-screen overflow-hidden">
+
+  <div id="login-screen" class="fixed inset-0 z-[9999] flex items-center justify-center login-bg p-4">
+    <div class="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-white/50">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3D405B] text-white mb-4 shadow-lg">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+             </div>
+            <h1 class="text-2xl font-bold text-[#3D405B]">MapaNto</h1>
+            <p class="text-gray-500 text-sm mt-1">Acesso Restrito ao Mapeamento</p>
+        </div>
+
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Corporativo</label>
+                <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E07A5F] focus:border-[#E07A5F] transition-colors" placeholder="seu.email@empresa.com.br">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E07A5F] focus:border-[#E07A5F] transition-colors" placeholder="••••••••">
+            </div>
+            
+            <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 p-2 rounded text-center font-medium"></div>
+
+            <button type="submit" id="btn-login" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#3D405B] hover:bg-[#2e3046] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3D405B] transition-all transform active:scale-95">
+                Entrar
             </button>
+        </form>
+        <div class="mt-6 text-center text-xs text-gray-400">
+            © Copyright by Pedro.Assis e Diego.Pereira
         </div>
-      </form>
-      <div id="search-results" aria-hidden="true" role="listbox"></div>
     </div>
   </div>
-
-  <div id="main-wrapper" class="container mx-auto p-4 md:p-8 container-with-sidebar">
-    <header class="text-center mb-6">
-        <h1 class="text-3xl md:text-4xl font-bold">Mapeamento de Impressoras Térmicas</h1><h5>By Pedro Assis e Diego Pereira</h5>
-        <select id="floor-select" class="mt-4 p-2 border rounded" aria-label="Selecionar andar">
-          <option value="1">Andar 1</option>
-          <option value="2">Andar 2</option>
-        </select>
-    </header>
-    <main id="map-and-content">
-      <div id="map-container" 
-           class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-4 border-transparent transition-colors duration-300" 
-           style="width: min(3840px, 92vw); aspect-ratio: 3840 / 2715;">
-        <div id="map-inner" class="relative w-full h-full">
-          <img id="map-image" src="./plantanto.jpg" alt="Planta do escritório" 
-               class="w-full h-full object-contain bg-white" 
-               onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
-        </div>
-        <div id="map-tooltip" role="status" aria-live="polite"></div>
-      </div>
-    </main>
-  </div>
-
-  <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
-    <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
-      <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
-      <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
-      <div class="space-y-3 text-gray-700">
-        <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
-        <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
-        <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
-        <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
-      </div>
-      <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
-        <div class="status-row">
-          <span id="status-sq" class="square" style="background:#ccc"></span>
-          <div id="status-text" class="status-text">--</div>
-        </div>
-        <div id="status-message" class="message mt-2 text-sm"></div>
-      </div>
-      <div class="mt-6 space-y-2">
-        <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
-        <div class="grid grid-cols-3 gap-2">
-          <button id="check-status-btn" class="px-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Status</button>
-          <button id="calibrate-btn" class="px-2 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Calibrar</button>
-          <button id="head-test-btn" class="px-2 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm">Teste Cabeça</button>
+  <div id="app-content" class="hidden h-full overflow-auto">
+      
+      <div id="side-actions" class="fixed top-4 right-16 z-30 flex flex-col items-end gap-3">
+        <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
+          <form id="search-form" class="flex items-center" role="search">
+            <input id="search-input" type="text" placeholder="Buscar por Nome ou SELB..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar impressora">
+            <div id="search-hitbox" class="icon-hitbox" title="Buscar">
+                <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600" aria-label="Abrir pesquisa">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
+            </div>
+          </form>
+          <div id="search-results" aria-hidden="true" role="listbox"></div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
-
-  <aside id="ip-tools-sidebar" aria-label="IP Tools — Painel lateral">
-    <div class="header">
-      <h3 class="font-semibold">IP Tools</h3>
-      <button id="collapse-panel" title="Ocultar painel" class="px-2 py-1 rounded bg-gray-100">—</button>
-    </div>
-
-    <div>
-      <label class="font-semibold text-sm">IP (ex: 172.19.114.25)</label>
-      <div class="controls mt-2">
-        <input id="ip-input-panel" type="text" placeholder="ex: 172.19.114.25" class="p-2 border rounded mono" />
-        <button id="set-ip-panel" class="px-3 py-2 bg-sky-600 text-white rounded">Definir</button>
+      <div id="main-wrapper" class="container mx-auto p-4 md:p-8 container-with-sidebar">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold">Mapeamento de Impressoras Térmicas</h1><h5>By Pedro Assis e Diego Pereira</h5>
+            <select id="floor-select" class="mt-4 p-2 border rounded" aria-label="Selecionar andar">
+              <option value="1">Andar 1</option>
+              <option value="2">Andar 2</option>
+            </select>
+        </header>
+        <main id="map-and-content">
+          <div id="map-container" 
+               class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-4 border-transparent transition-colors duration-300" 
+               style="width: min(3840px, 92vw); aspect-ratio: 3840 / 2715;">
+            <div id="map-inner" class="relative w-full h-full">
+              <img id="map-image" src="./plantanto.jpg" alt="Planta do escritório" 
+                   class="w-full h-full object-contain bg-white" 
+                   onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
+            </div>
+            <div id="map-tooltip" role="status" aria-live="polite"></div>
+          </div>
+        </main>
       </div>
-    </div>
 
-    <div id="panel-buttons" class="mt-2">
-      <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded">Status</button>
-      <button id="btn-open-panel" class="p-2 bg-gray-700 text-white rounded">Acessar IP</button>
-      <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded">Calibrar</button>
-      <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded">Teste Cabeça</button>
-    </div>
+      <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
+        <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
+          <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
+          <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
+          <div class="space-y-3 text-gray-700">
+            <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
+            <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+            <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+            <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
+          </div>
+          <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+            <div class="status-row">
+              <span id="status-sq" class="square" style="background:#ccc"></span>
+              <div id="status-text" class="status-text">--</div>
+            </div>
+            <div id="status-message" class="message mt-2 text-sm"></div>
+          </div>
+          <div class="mt-6 space-y-2">
+            <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="check-status-btn" class="px-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Status</button>
+              <button id="calibrate-btn" class="px-2 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Calibrar</button>
+              <button id="head-test-btn" class="px-2 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm">Teste Cabeça</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div>
-      <label class="font-semibold text-sm">IP atual:</label>
-      <div id="panel-current-ip" class="mono mt-1">nenhum</div>
-    </div>
+      <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
 
-    <div>
-      <label class="font-semibold text-sm">Log (últimas ações)</label>
-      <div id="panel-log" aria-live="polite" role="log"></div>
-    </div>
+      <aside id="ip-tools-sidebar" aria-label="IP Tools — Painel lateral">
+        <div class="header">
+          <h3 class="font-semibold">IP Tools</h3>
+          <button id="collapse-panel" title="Ocultar painel" class="px-2 py-1 rounded bg-gray-100">—</button>
+        </div>
 
-    <div class="mt-auto text-xs text-gray-500">
-      <div>proxy.php — envia comandos & status (via Túnel)</div>
-    </div>
-  </aside>
+        <div>
+          <label class="font-semibold text-sm">IP (ex: 172.19.114.25)</label>
+          <div class="controls mt-2">
+            <input id="ip-input-panel" type="text" placeholder="ex: 172.19.114.25" class="p-2 border rounded mono" />
+            <button id="set-ip-panel" class="px-3 py-2 bg-sky-600 text-white rounded">Definir</button>
+          </div>
+        </div>
 
-<script>
+        <div id="panel-buttons" class="mt-2">
+          <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded">Status</button>
+          <button id="btn-open-panel" class="p-2 bg-gray-700 text-white rounded">Acessar IP</button>
+          <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded">Calibrar</button>
+          <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded">Teste Cabeça</button>
+        </div>
+
+        <div>
+          <label class="font-semibold text-sm">IP atual:</label>
+          <div id="panel-current-ip" class="mono mt-1">nenhum</div>
+        </div>
+
+        <div>
+          <label class="font-semibold text-sm">Log (últimas ações)</label>
+          <div id="panel-log" aria-live="polite" role="log"></div>
+        </div>
+
+        <div class="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-2">
+           <button onclick="window.logoutApp()" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+               Sair do Sistema
+           </button>
+           <div class="text-xs text-center text-gray-500">
+             proxy.php — via Túnel
+           </div>
+        </div>
+      </aside>
+  </div> <script>
 document.addEventListener('DOMContentLoaded', () => {
   // -------------------- CONFIGURAÇÃO DE REDE (VERCEL -> CLOUDFLARE) --------------------
-  // IMPORTANTE: Substitua o link abaixo SEMPRE que reiniciar o Cloudflare no seu PC
-  // Deve terminar com /proxy.php
   const API_BASE_URL = "https://kissing-reactions-winners-nearest.trycloudflare.com/proxy.php"; 
   // ---------------------------------------------------------------------------------------
 
   // -------------------- CONFIG --------------------
-  // Se true: sempre carrega o array hardcoded do código (ignora localStorage).
-  // Troque para false se quiser permitir persistência entre reloads.
   const FORCE_HARDCODED = true;
   const LOCALSTORAGE_KEY = 'interactiveMapPrinters';
   // -------------------------------------------------
@@ -276,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
  ];
 
   const initialPrinters = [
-{name:'teste t.i', department:'Customer Service', ip:'172.19.114.30', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
+{name:'teste t.i', department:'Customer Service', ip:'172.19.114.114', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
 {name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
 {name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
 {name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
