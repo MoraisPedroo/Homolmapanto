@@ -2,16 +2,14 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
   <title>MapaNto - Acesso Restrito</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <script type="module">
-    // Importações do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // Sua configuração
     const firebaseConfig = {
       apiKey: "AIzaSyB1IF4Bt_g9jOdJbssEszdeZ2-3FJ2JsPY",
       authDomain: "mapanto-3e05c.firebaseapp.com",
@@ -22,11 +20,9 @@
       measurementId: "G-G1D32075W9"
     };
 
-    // Inicializa Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Elementos DOM
     const loginScreen = document.getElementById('login-screen');
     const appContent = document.getElementById('app-content');
     const loginForm = document.getElementById('login-form');
@@ -34,60 +30,49 @@
     const passwordInput = document.getElementById('password');
     const loginError = document.getElementById('login-error');
     const btnLogin = document.getElementById('btn-login');
-    const btnLogout = document.getElementById('btn-logout-sidebar'); // Vamos criar este botão no painel
 
-    // Monitora estado da autenticação (Persistência)
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Usuário logado: Mostra o App, esconde Login
         loginScreen.classList.add('hidden');
         appContent.classList.remove('hidden');
-        console.log("Usuário autenticado:", user.email);
+        
+        // CORREÇÃO: No mobile, inicia o painel colapsado para ver o mapa
+        if (window.innerWidth < 900) {
+            const sidebar = document.getElementById('ip-tools-sidebar');
+            const btn = document.getElementById('collapse-panel');
+            if(sidebar && btn) {
+                sidebar.classList.add('collapsed');
+                btn.textContent = '+';
+            }
+        }
       } else {
-        // Usuário não logado: Mostra Login, esconde App
         loginScreen.classList.remove('hidden');
         appContent.classList.add('hidden');
       }
     });
 
-    // Função de Login
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = emailInput.value;
       const password = passwordInput.value;
 
-      // UI Loading
       btnLogin.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
       loginError.classList.add('hidden');
 
       signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          // Sucesso é tratado pelo onAuthStateChanged acima
-        })
         .catch((error) => {
           btnLogin.textContent = "Entrar";
           loginError.textContent = "Email ou senha incorretos.";
           loginError.classList.remove('hidden');
-          console.error(error.code, error.message);
         });
     });
 
-    // Função de Logout (Vamos atrelar ao botão no painel)
-    // Expondo a função para o escopo global para usar no onclick se necessário, 
-    // ou adicionando listener se o elemento já existir
     window.logoutApp = () => {
-        signOut(auth).then(() => {
-            alert("Desconectado com sucesso");
-        }).catch((error) => {
-            console.error("Erro ao sair", error);
-        });
+        signOut(auth).then(() => { location.reload(); });
     };
-
   </script>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <link rel="icon" type="image/png" href="./pardinilogo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./pardinilogo.png">
   <meta name="theme-color" content="#F3F0EC">
@@ -96,7 +81,89 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
 
-    /* --- SEUS ESTILOS ANTIGOS DO MAPA (MANTIDOS) --- */
+    /* --- ESTILOS RESPONSIVOS CORRIGIDOS --- */
+    
+    /* Container do Mapa */
+    #map-container {
+        /* Garante que o mapa não estoure a tela */
+        width: 100%; 
+        max-width: 100vw;
+        height: auto;
+    }
+
+    /* Painel Lateral (Sidebar) */
+    #ip-tools-sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 350px;
+      height: 100vh;
+      background: white;
+      z-index: 60;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Estado Colapsado (Escondido) */
+    #ip-tools-sidebar.collapsed {
+      transform: translateX(100%);
+    }
+
+    /* Botão de Collapse (Aba lateral) */
+    #collapse-panel {
+      position: absolute;
+      left: -40px; /* Joga o botão para fora do painel, à esquerda */
+      top: 80px;   /* Altura confortável para o dedo */
+      width: 40px;
+      height: 40px;
+      background: #3D405B;
+      color: white;
+      border-radius: 8px 0 0 8px; /* Arredonda só a esquerda */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: -4px 2px 10px rgba(0,0,0,0.1);
+      z-index: 70;
+      border: none;
+    }
+
+    /* Ajuste para Desktop: empurra o mapa quando painel está aberto */
+    @media (min-width: 901px) {
+        .container-with-sidebar { margin-right: 350px; transition: margin 0.3s; }
+        body:has(#ip-tools-sidebar.collapsed) .container-with-sidebar { margin-right: 0; }
+    }
+
+    /* Ajuste para Mobile (Celulares) */
+    @media (max-width: 900px) {
+      #ip-tools-sidebar {
+        width: 85%; /* Ocupa quase toda a tela, mas deixa ver um tiquinho do fundo */
+        max-width: 320px;
+      }
+      
+      /* No mobile, o mapa SEMPRE ocupa 100%, o painel fica por cima */
+      .container-with-sidebar { margin-right: 0 !important; }
+      
+      /* Ajusta botões do mapa para não ficarem embaixo do botão de collapse */
+      #side-actions { top: 10px; right: 10px; }
+      
+      /* Ajuste da Modal para telas pequenas */
+      .modal-content {
+          max-height: 85vh; /* Limita altura */
+          overflow-y: auto; /* Permite rolar se o conteúdo for grande */
+          width: 95% !important; /* Mais largo no mobile */
+      }
+    }
+
+    /* --- FIM DOS ESTILOS RESPONSIVOS --- */
+
+    /* Estilos base (mantidos) */
     .printer-point { position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer; transition: all 0.25s ease; display:flex; align-items:center; justify-content:center; transform:translate(-50%,-50%); z-index:20; --point-color: #3b82f6; }
     .printer-point::before { content:''; position:absolute; width:100%; height:100%; border-radius:9999px; animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; }
     .printer-point:hover { transform: translate(-50%, -50%) scale(1.25); z-index:25; }
@@ -108,7 +175,6 @@
     .icon-hitbox { display:inline-flex; align-items:center; justify-content:center; padding:8px; border-radius:9999px; cursor:pointer; -webkit-tap-highlight-color: transparent; }
     .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:40; display:flex; align-items:center; justify-content:center; }
     .modal-content { z-index:50; }
-    #map-container.add-mode { cursor:crosshair; }
     .toast { position: fixed; top:20px; right:20px; background:#3D405B; color:white; padding:12px 20px; border-radius:8px; z-index:100; opacity:0; transform: translateY(-20px); transition: opacity .5s, transform .5s; }
     .toast.show { opacity:1; transform:translateY(0); }
     #map-tooltip { position:absolute; background:#3D405B; color:white; padding:8px 12px; border-radius:6px; font-size:.875rem; line-height:1.4; opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s; pointer-events:none; z-index:60; transform: translate(-50%,-125%); white-space:nowrap; }
@@ -122,7 +188,6 @@
     .square { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
     .status-row { display: flex; align-items: center; gap: 10px; }
     .status-text { font-weight: 700; font-size: 18px; }
-    #ip-tools-sidebar { position: fixed; top: 0; right: 0; width: 350px; height: 100vh; background: white; z-index: 60; box-shadow: -10px 0 30px rgba(0,0,0,0.08); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
     #ip-tools-sidebar .header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     #ip-tools-sidebar h3 { margin:0; font-size:1.05rem; }
     #ip-tools-sidebar .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
@@ -131,13 +196,7 @@
     #panel-buttons { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
     #panel-log { height: 200px; overflow-y: auto; background:#0f172a; color:#d1fae5; padding:12px; border-radius:8px; font-family: ui-monospace, Menlo, Monaco, monospace; font-size:12px; }
     #panel-current-ip { padding:8px; background:#f3f4f6; border-radius:6px; font-family: ui-monospace, Menlo, Monaco, monospace; }
-    @media (max-width: 900px) { #ip-tools-sidebar { width: 320px; } #map-container { margin-right: 320px; } }
-    @media (max-width: 720px) { #ip-tools-sidebar { position: relative; width: 100%; height: auto; box-shadow:none; } #main-wrapper { display:block; } #map-and-content { margin-right: 0; } .container-with-sidebar { margin-right: 0; } }
-    .container-with-sidebar { margin-right: 360px; }
-    #collapse-panel { position: absolute; left: -36px; top: 10px; background: #ffffff; border: 1px solid #e5e7eb; padding: 6px 8px; border-radius: 8px; z-index: 9999; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
-    #ip-tools-sidebar.collapsed { transform: translateX(100%); transition: transform .28s ease; }
-
-    /* --- ESTILO NOVO PARA TELA DE LOGIN --- */
+    
     .login-bg {
         background-color: #F3F0EC;
         background-image: radial-gradient(#E07A5F 0.5px, transparent 0.5px), radial-gradient(#3D405B 0.5px, #F3F0EC 0.5px);
@@ -151,7 +210,7 @@
   <div id="login-screen" class="fixed inset-0 z-[9999] flex items-center justify-center login-bg p-4">
     <div class="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-white/50">
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3D405B] text-white mb-4 shadow-lg">
+             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3D405B] text-white mb-4 shadow-lg">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
              </div>
             <h1 class="text-2xl font-bold text-[#3D405B]">MapaNto</h1>
@@ -167,50 +226,42 @@
                 <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
                 <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E07A5F] focus:border-[#E07A5F] transition-colors" placeholder="••••••••">
             </div>
-            
             <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 p-2 rounded text-center font-medium"></div>
-
             <button type="submit" id="btn-login" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#3D405B] hover:bg-[#2e3046] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3D405B] transition-all transform active:scale-95">
                 Entrar
             </button>
         </form>
-        <div class="mt-6 text-center text-xs text-gray-400">
-            © Copyright by Pedro.Assis e Diego.Pereira
-        </div>
+        <div class="mt-6 text-center text-xs text-gray-400">Powered by T.I Support Team</div>
     </div>
   </div>
+
   <div id="app-content" class="hidden h-full overflow-auto">
       
-      <div id="side-actions" class="fixed top-4 right-16 z-30 flex flex-col items-end gap-3">
+      <div id="side-actions" class="fixed top-4 right-4 z-30 flex flex-col items-end gap-3">
         <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
           <form id="search-form" class="flex items-center" role="search">
-            <input id="search-input" type="text" placeholder="Buscar por Nome ou SELB..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar impressora">
+            <input id="search-input" type="text" placeholder="Buscar..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar">
             <div id="search-hitbox" class="icon-hitbox" title="Buscar">
-                <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600" aria-label="Abrir pesquisa">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </button>
+                <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button>
             </div>
           </form>
           <div id="search-results" aria-hidden="true" role="listbox"></div>
         </div>
       </div>
 
-      <div id="main-wrapper" class="container mx-auto p-4 md:p-8 container-with-sidebar">
-        <header class="text-center mb-6">
-            <h1 class="text-3xl md:text-4xl font-bold">Mapeamento de Impressoras Térmicas</h1><h5>By Pedro Assis e Diego Pereira</h5>
-            <select id="floor-select" class="mt-4 p-2 border rounded" aria-label="Selecionar andar">
+      <div id="main-wrapper" class="container mx-auto p-2 md:p-8 container-with-sidebar">
+        <header class="text-center mb-4 md:mb-6">
+            <h1 class="text-2xl md:text-4xl font-bold">Mapeamento de Impressoras</h1>
+            <h5 class="text-sm md:text-base">By Pedro Assis e Diego Pereira</h5>
+            <select id="floor-select" class="mt-2 p-2 border rounded" aria-label="Selecionar andar">
               <option value="1">Andar 1</option>
               <option value="2">Andar 2</option>
             </select>
         </header>
         <main id="map-and-content">
-          <div id="map-container" 
-               class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-4 border-transparent transition-colors duration-300" 
-               style="width: min(3840px, 92vw); aspect-ratio: 3840 / 2715;">
+          <div id="map-container" class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-2 border-transparent transition-colors duration-300" style="aspect-ratio: 3840 / 2715;">
             <div id="map-inner" class="relative w-full h-full">
-              <img id="map-image" src="./plantanto.jpg" alt="Planta do escritório" 
-                   class="w-full h-full object-contain bg-white" 
-                   onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
+              <img id="map-image" src="./plantanto.jpg" alt="Planta" class="w-full h-full object-contain bg-white" onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
             </div>
             <div id="map-tooltip" role="status" aria-live="polite"></div>
           </div>
@@ -219,9 +270,9 @@
 
       <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
         <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
-          <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
-          <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
-          <div class="space-y-3 text-gray-700">
+          <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-2" aria-label="Fechar">✕</button>
+          <h2 id="modal-title" class="text-xl md:text-2xl font-bold mb-4 pr-8"></h2>
+          <div class="space-y-3 text-gray-700 text-sm md:text-base">
             <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
             <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
             <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
@@ -230,16 +281,16 @@
           <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
             <div class="status-row">
               <span id="status-sq" class="square" style="background:#ccc"></span>
-              <div id="status-text" class="status-text">--</div>
+              <div id="status-text" class="status-text text-base">--</div>
             </div>
             <div id="status-message" class="message mt-2 text-sm"></div>
           </div>
           <div class="mt-6 space-y-2">
             <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
             <div class="grid grid-cols-3 gap-2">
-              <button id="check-status-btn" class="px-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Status</button>
-              <button id="calibrate-btn" class="px-2 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Calibrar</button>
-              <button id="head-test-btn" class="px-2 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm">Teste Cabeça</button>
+              <button id="check-status-btn" class="px-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-xs md:text-sm">Status</button>
+              <button id="calibrate-btn" class="px-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-xs md:text-sm">Calibrar</button>
+              <button id="head-test-btn" class="px-1 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-xs md:text-sm">Teste Cabeça</button>
             </div>
           </div>
         </div>
@@ -248,56 +299,46 @@
       <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
 
       <aside id="ip-tools-sidebar" aria-label="IP Tools — Painel lateral">
+        <button id="collapse-panel" title="Alternar painel">—</button>
         <div class="header">
           <h3 class="font-semibold">IP Tools</h3>
-          <button id="collapse-panel" title="Ocultar painel" class="px-2 py-1 rounded bg-gray-100">—</button>
         </div>
-
         <div>
-          <label class="font-semibold text-sm">IP (ex: 172.19.114.25)</label>
+          <label class="font-semibold text-sm">IP</label>
           <div class="controls mt-2">
             <input id="ip-input-panel" type="text" placeholder="ex: 172.19.114.25" class="p-2 border rounded mono" />
             <button id="set-ip-panel" class="px-3 py-2 bg-sky-600 text-white rounded">Definir</button>
           </div>
         </div>
-
         <div id="panel-buttons" class="mt-2">
-          <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded">Status</button>
-          <button id="btn-open-panel" class="p-2 bg-gray-700 text-white rounded">Acessar IP</button>
-          <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded">Calibrar</button>
-          <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded">Teste Cabeça</button>
+          <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded text-sm">Status</button>
+          <button id="btn-open-panel" class="p-2 bg-gray-700 text-white rounded text-sm">Acessar</button>
+          <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded text-sm">Calibrar</button>
+          <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded text-sm">Teste</button>
         </div>
-
         <div>
           <label class="font-semibold text-sm">IP atual:</label>
-          <div id="panel-current-ip" class="mono mt-1">nenhum</div>
+          <div id="panel-current-ip" class="mono mt-1 text-sm">nenhum</div>
         </div>
-
         <div>
-          <label class="font-semibold text-sm">Log (últimas ações)</label>
+          <label class="font-semibold text-sm">Log</label>
           <div id="panel-log" aria-live="polite" role="log"></div>
         </div>
-
         <div class="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-2">
            <button onclick="window.logoutApp()" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-               Sair do Sistema
+               Sair
            </button>
-           <div class="text-xs text-center text-gray-500">
-             proxy.php — via Túnel
-           </div>
+           <div class="text-xs text-center text-gray-500">proxy.php — Túnel</div>
         </div>
       </aside>
-  </div> <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // -------------------- CONFIGURAÇÃO DE REDE (VERCEL -> CLOUDFLARE) --------------------
-  const API_BASE_URL = "https://kissing-reactions-winners-nearest.trycloudflare.com/proxy.php"; 
-  // ---------------------------------------------------------------------------------------
+  </div>
 
-  // -------------------- CONFIG --------------------
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const API_BASE_URL = "https://kissing-reactions-winners-nearest.trycloudflare.com/proxy.php"; 
   const FORCE_HARDCODED = true;
   const LOCALSTORAGE_KEY = 'interactiveMapPrinters';
-  // -------------------------------------------------
 
   const mapContainer = document.getElementById('map-container');
   const mapInner = document.getElementById('map-inner');
@@ -315,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const calibrateBtn = document.getElementById('calibrate-btn');
   const headTestBtn = document.getElementById('head-test-btn');
 
-  // --- novos elementos do painel lateral ---
   const ipInputPanel = document.getElementById('ip-input-panel');
   const setIpPanelBtn = document.getElementById('set-ip-panel');
   const btnStatusPanel = document.getElementById('btn-status-panel');
@@ -434,7 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
 {name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
 ];
 
-  // Comandos EPL
   const TESTE_CABECA = `I8,A,001
 
 Q240,024
@@ -460,10 +499,9 @@ P1
 
   function showToast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),3000); }
 
-  // savePrinters respeita a flag
   function savePrinters(){
     if (FORCE_HARDCODED) {
-      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ /* ignore */ }
+      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ }
       return;
     }
     try { localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(printerData)); } catch(e){ console.warn('Erro ao gravar localStorage', e); }
@@ -472,7 +510,7 @@ P1
   function loadPrinters(){
     if (FORCE_HARDCODED) {
       printerData = (Array.isArray(initialPrinters) ? initialPrinters.slice() : []).concat(Array.isArray(initialPrinters2floor) ? initialPrinters2floor.slice() : []);
-      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ /* ignore */ }
+      try { localStorage.removeItem(LOCALSTORAGE_KEY); } catch(e){ }
       renderAllPrinters();
       return;
     }
@@ -563,22 +601,19 @@ P1
     detailsModal.classList.remove('hidden');
     detailsModal.setAttribute('aria-hidden','false');
 
-    // --- atualização do painel lateral (auto-preenchimento do IP) ---
     if (ipInputPanel) {
       ipInputPanel.value = printer.ip || '';
       panelCurrentIp.textContent = printer.ip || 'nenhum';
-      logPanel(`IP preenchido automaticamente: ${printer.ip}`);
+      logPanel(`IP preenchido: ${printer.ip}`);
     }
   }
   
- // Substitua sua função checkStatus por esta (sem debug)
 async function checkStatus(ip) {
   const display = document.getElementById('status-display');
   const sq = document.getElementById('status-sq');
   const statusText = document.getElementById('status-text');
   const message = document.getElementById('status-message');
 
-  // reset visual
   display.classList.add('hidden');
   sq.style.background = '#ccc';
   statusText.innerText = '--';
@@ -587,13 +622,12 @@ async function checkStatus(ip) {
 
   if (!ip) { showToast('IP inválido!'); if (panelLog) logPanel('Status: IP inválido'); return; }
 
-  const TOTAL_TIMEOUT = 2000; // ms
+  const TOTAL_TIMEOUT = 3000;
   const controller = new AbortController();
   const signal = controller.signal;
   const timeoutId = setTimeout(() => controller.abort(), TOTAL_TIMEOUT);
 
   try {
-    // USANDO A CONSTANTE API_BASE_URL (Túnel Cloudflare)
     let res = await fetch(`${API_BASE_URL}?ip=${encodeURIComponent(ip)}&as_json=1`, { cache: 'no-store', signal });
 
     if (!res.ok) {
@@ -601,7 +635,7 @@ async function checkStatus(ip) {
       if (!res.ok) throw new Error('Erro HTTP ' + res.status);
     }
 
-    clearTimeout(timeoutId); // ok, respondeu antes do timeout
+    clearTimeout(timeoutId);
 
     const ct = (res.headers.get('content-type') || '').toLowerCase();
 
@@ -613,54 +647,41 @@ async function checkStatus(ip) {
       return;
     }
 
-    // texto/html
     const text = await res.text();
     applyZebraHeuristics(text, sq, statusText, message, display);
     logPanel(`Status recebido (HTML) de ${ip}`);
 
   } catch (err) {
     clearTimeout(timeoutId);
-
-    // detecta abort/timeout
-    const isAbort = err && (err.name === 'AbortError' || /aborted/i.test(err.message) || /The user aborted a request/i.test(err.message));
+    const isAbort = err && (err.name === 'AbortError' || /aborted/i.test(err.message));
     display.classList.remove('hidden');
     sq.style.background = 'red';
     statusText.style.color = 'red';
 
     if (isAbort) {
       statusText.innerText = 'Erro de conexão';
-      message.innerText = 'Falta de rede';
-      logPanel(`Status: Erro de conexão (${ip}) — timeout`);
+      message.innerText = 'Timeout na rede';
+      logPanel(`Status: Timeout (${ip})`);
       return;
     }
 
     const errMsg = (err && err.message) ? err.message : String(err);
-    if (errMsg.includes('Erro HTTP 502') || errMsg.includes('502')) {
-      statusText.innerText = 'Erro de conexão';
-      message.innerText = 'Verifique se o cabo de rede está bem conectado';
-      logPanel(`Status: Erro 502 ao consultar ${ip}`);
-    } else {
-      statusText.innerText = 'Erro';
-      message.innerText = `Erro ao conectar: ${errMsg}`;
-      logPanel(`Status: Erro ao consultar ${ip} -> ${errMsg}`);
-    }
+    statusText.innerText = 'Erro';
+    message.innerText = `Erro ao conectar: ${errMsg}`;
+    logPanel(`Status: Erro ${errMsg}`);
   }
 }
 
-
-// Heurística especializada (mantida conforme seu pedido)
 function applyZebraHeuristics(raw, sq, statusText, message, display) {
   const lower = (raw || '').toLowerCase();
 
-  // extrai H3s (mantendo posições — alguns H3 podem ser vazios)
   const h3s = [];
   raw.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (m, g1) => {
     const cleaned = g1.replace(/<[^>]+>/g, '').trim();
-    h3s.push(cleaned); // pode ser ''
+    h3s.push(cleaned);
     return m;
   });
 
-  // procura índice do H3 de status
   let statusH3Index = h3s.findIndex(h => /status[:\s]/i.test(h) || /em pausa|em aguard|aguardo|status/i.test(h));
   if (statusH3Index === -1) {
     statusH3Index = h3s.findIndex(h => /em pausa|pausa|aguardo|em aguard/i.test(h));
@@ -676,49 +697,44 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   const s = (statusH3 || '').toLowerCase();
   const e = (condH3 || '').toLowerCase();
 
-  // 1) EM AGUARDO / READY (pronto)
   if (s.includes('aguardo') || s.includes('em aguardo') || s.includes('ready') || s.includes('waiting') || (lower.includes('status:') && /aguardo|ready|waiting/.test(lower))) {
     sq.style.background = 'green';
     statusText.style.color = 'green';
-    statusText.innerText = 'Pronto para impressão';
+    statusText.innerText = 'Pronto';
     message.innerText = 'Tudo ok para imprimir';
     display.classList.remove('hidden');
     return;
   }
 
-  // 2) EM PAUSA / PAUSE com H3 seguinte vazio -> instrução feed
   if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && (!condH3 || condH3.trim() === '')) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Pausa';
-    message.innerText = 'Para despausar pressione o botão feed';
+    message.innerText = 'Pressione o botão feed';
     display.classList.remove('hidden');
     return;
   }
 
-  // 3) EM PAUSA / PAUSE com CAB. ABERTO / HEAD OPEN
   const cabAbertoDetected = ((/cab|cab\./i.test(e) && /abert/i.test(e)) || (/cabec/i.test(e) && /abert/i.test(e)) || (/cab/i.test(e) && /abert/i.test(e)) || /head open/i.test(e) || /open head/i.test(e));
   if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && cabAbertoDetected) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = 'Impressora aberta — feche a impressora';
+    message.innerText = 'Impressora aberta';
     display.classList.remove('hidden');
     return;
   }
 
-  // 4) EM PAUSA / PAUSE com FALTA PAPEL / PAPER OUT
   const faltaPapelDetected = /falta\s*papel|falta de papel|papel/i.test(e) || /falta.*papel/i.test(lower) || /paper/i.test(e) || /paper out/i.test(lower) || /out of paper/i.test(lower);
   if ((s.includes('em pausa') || s.includes('pausa') || s.includes('pause') || s.includes('paused') || lower.includes('em pausa') || lower.includes('pause')) && faltaPapelDetected) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = 'Impressora com erro de etiqueta/ribon — verifique os insumos';
+    message.innerText = 'Falta de papel/etiqueta';
     display.classList.remove('hidden');
     return;
   }
 
-  // fallback genérico
   const okKeywords = ['aguardo','pronto','ready','ok','waiting'];
   const pauseKeywords = ['pausa','pause','paused','error','erro','aberto','open','falta papel','paper'];
 
@@ -728,13 +744,13 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   if (anyOk && !anyPause) {
     sq.style.background = 'green';
     statusText.style.color = 'green';
-    statusText.innerText = 'Pronto para impressão';
-    message.innerText = 'Tudo ok para imprimir';
+    statusText.innerText = 'Pronto';
+    message.innerText = 'Tudo ok';
   } else if (anyPause) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = (condH3 ? condH3 : 'Condição de erro detectada.');
+    message.innerText = (condH3 ? condH3 : 'Erro detectado');
   } else {
     sq.style.background = 'red';
     statusText.style.color = 'red';
@@ -745,64 +761,39 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   display.classList.remove('hidden');
 }
 
-// Decodifica base64 -> texto UTF-8 de forma segura.
-// Usa atob + TextDecoder quando disponível; fallback para string raw.
 function base64ToUtf8(b64) {
   if (!b64) return '';
   try {
-    // atob lança se não for base64 válido
     const binary = atob(b64);
-    // converte para Uint8Array (cada char -> byte)
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    // se TextDecoder disponível, usa para obter UTF-8 corretamente
     if (typeof TextDecoder !== 'undefined') {
-      try {
-        return new TextDecoder('utf-8').decode(bytes);
-      } catch (e) {
-        // cai para fallback abaixo
-      }
+      try { return new TextDecoder('utf-8').decode(bytes); } catch (e) {}
     }
-
-    // fallback simples: interpreta como Latin1 -> retorna string
     let out = '';
     for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
     return out;
-  } catch (e) {
-    // se qualquer coisa falhar, devolve o input original (ou string vazia)
-    return b64;
-  }
+  } catch (e) { return b64; }
 }
 
-// ----------------- log do painel -----------------
 function logPanel(msg){
   if (!panelLog) return;
   try {
-    const ts = new Date().toLocaleTimeString();
+    const ts = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     const entry = document.createElement('div');
     entry.textContent = `[${ts}] ${msg}`;
-    // insere no topo
     panelLog.prepend(entry);
-    // manter um limite de linhas (por exemplo 200)
-    const children = panelLog.children;
-    if (children.length > 200) {
-      panelLog.removeChild(children[children.length - 1]);
-    }
-  } catch(e){
-    console.warn('logPanel erro', e);
-  }
+    if (panelLog.children.length > 50) panelLog.removeChild(panelLog.lastChild);
+  } catch(e){}
 }
 
-// ----------------- envio de comandos (usado por painel e modal) -----------------
 async function sendCommand(cmd, actionName) {
   if (!currentPrinterIp) { showToast('IP inválido!'); logPanel(`${actionName}: IP inválido`); return; }
-  if (!cmd || cmd.trim() === '') { showToast('Comando vazio!'); logPanel(`${actionName}: comando vazio`); return; }
+  if (!cmd || cmd.trim() === '') { showToast('Comando vazio!'); return; }
 
-  logPanel(`${actionName} -> enviando para ${currentPrinterIp} ...`);
+  logPanel(`${actionName}...`);
   try {
     const payload = { ip: currentPrinterIp, cmd: cmd };
-    // USANDO A CONSTANTE API_BASE_URL (Túnel Cloudflare) - Método POST
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -810,85 +801,53 @@ async function sendCommand(cmd, actionName) {
     });
     const json = await res.json().catch(()=>({}));
     if (res.ok && json.success) {
-      showToast(`${actionName} enviado com sucesso!`);
-      logPanel(`${actionName}: enviado com sucesso.`);
+      showToast(`${actionName} enviado!`);
+      logPanel(`${actionName}: OK`);
     } else {
       const err = json.error || JSON.stringify(json);
       showToast(`Erro: ${err}`);
-      logPanel(`${actionName}: resposta do proxy -> ${err}`);
+      logPanel(`${actionName}: Erro`);
     }
   } catch (err) {
-    showToast(`Erro de conexão: ${err.message}`);
-    logPanel(`${actionName}: erro de conexão -> ${err.message}`);
+    showToast(`Erro de conexão`);
+    logPanel(`${actionName}: Falha conexão`);
   }
 }
 
-// ----- listeners para os botões do modal (já existentes) -----
-checkStatusBtn.addEventListener('click', () => {
-  checkStatus(currentPrinterIp);
-  logPanel(`Solicitado status de ${currentPrinterIp}`);
-});
-calibrateBtn.addEventListener('click', () => {
-  sendCommand(CALIBRAGEM, 'Calibragem');
-});
-headTestBtn.addEventListener('click', () => {
-  sendCommand(TESTE_CABECA, 'Teste de cabeça');
-});
+checkStatusBtn.addEventListener('click', () => { checkStatus(currentPrinterIp); });
+calibrateBtn.addEventListener('click', () => { sendCommand(CALIBRAGEM, 'Calibragem'); });
+headTestBtn.addEventListener('click', () => { sendCommand(TESTE_CABECA, 'Teste Cabeça'); });
 
-// ----------------- listeners do painel lateral -----------------
 setIpPanelBtn.addEventListener('click', () => {
   const v = ipInputPanel.value.trim();
   if (!v) { showToast('Digite o IP'); return; }
   currentPrinterIp = v;
-  panelCurrentIp.textContent = currentPrinterIp;
-  // também atualiza a modal caso esteja aberta
-  const modalIp = document.getElementById('modal-ip');
-  if (modalIp) modalIp.textContent = currentPrinterIp;
+  document.getElementById('modal-ip').textContent = currentPrinterIp;
   document.getElementById('modal-link').href = `http://${currentPrinterIp}`;
-  showToast('IP definido: ' + currentPrinterIp);
-  logPanel('IP definido: ' + currentPrinterIp);
+  showToast('IP definido');
+  logPanel('IP definido');
 });
 
 btnOpenPanel.addEventListener('click', () => {
-  if (!currentPrinterIp) { showToast('Defina o IP'); logPanel('Abrir: IP indefinido'); return; }
-  const url = `http://${currentPrinterIp}/`;
-  logPanel('Abrindo interface web da impressora: ' + url);
-  window.open(url, '_blank');
+  if (!currentPrinterIp) { showToast('Defina o IP'); return; }
+  window.open(`http://${currentPrinterIp}/`, '_blank');
 });
 
 btnStatusPanel.addEventListener('click', () => {
-  if (!currentPrinterIp) { showToast('Defina o IP'); logPanel('Status: IP indefinido'); return; }
+  if (!currentPrinterIp) { showToast('Defina o IP'); return; }
   checkStatus(currentPrinterIp);
-  logPanel(`Solicitado status de ${currentPrinterIp}`);
 });
 
-btnCalibratePanel.addEventListener('click', () => {
-  sendCommand(CALIBRAGEM, 'Calibragem');
-});
+btnCalibratePanel.addEventListener('click', () => { sendCommand(CALIBRAGEM, 'Calibragem'); });
+btnHeadTestPanel.addEventListener('click', () => { sendCommand(TESTE_CABECA, 'Teste Cabeça'); });
 
-btnHeadTestPanel.addEventListener('click', () => {
-  sendCommand(TESTE_CABECA, 'Teste Cabeça');
-});
-
-// botão de colapso simples (esconde / mostra painel)
-
-// botão de colapso: agora usa classe 'collapsed' para manter o botão sempre visível
 collapsePanelBtn.addEventListener('click', () => {
   const aside = document.getElementById('ip-tools-sidebar');
   if (!aside) return;
   aside.classList.toggle('collapsed');
-
-  if (aside.classList.contains('collapsed')) {
-    collapsePanelBtn.textContent = '+';
-    collapsePanelBtn.title = 'Mostrar painel';
-  } else {
-    collapsePanelBtn.textContent = '—';
-    collapsePanelBtn.title = 'Ocultar painel';
-  }
+  collapsePanelBtn.textContent = aside.classList.contains('collapsed') ? '+' : '—';
 });
 
-
-// ----------------- busca (mesmo do original) -----------------
 searchHitbox.addEventListener('click', (e) => {
   e.stopPropagation();
   if (searchInput.value.trim()) { searchInput.value = ''; handleSearch(); }
@@ -929,9 +888,8 @@ function handleSearch() {
       results.forEach((r, idx) => {
           const d = document.createElement('div');
           d.className = 'result-item p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
-          d.innerHTML = `<div class="font-semibold">${r.name}</div><div class="text-sm text-gray-500">SELB: ${r.selb} (Andar ${r.floor})</div>`;
+          d.innerHTML = `<div class="font-semibold">${r.name}</div><div class="text-sm text-gray-500">SELB: ${r.selb}</div>`;
           d.tabIndex = 0;
-          d.setAttribute('role','option');
           d.addEventListener('click', (ev) => {
               ev.stopPropagation();
               searchResultsPanel.style.display = 'none';
@@ -941,11 +899,6 @@ function handleSearch() {
                 currentFloor = r.floor; floorSelect.value = currentFloor; updateMapImage(); renderAllPrinters();
               }
               focusPrinter(r, true);
-          });
-          d.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter') d.click();
-            if (ev.key === 'ArrowDown') { ev.preventDefault(); focusResultByIndex(idx+1); }
-            if (ev.key === 'ArrowUp') { ev.preventDefault(); focusResultByIndex(idx-1); }
           });
           searchResultsPanel.appendChild(d);
       });
@@ -964,34 +917,26 @@ function focusPrinter(printer, openModal = false) {
 
   const pRect = point.getBoundingClientRect();
   const mapRect = mapContainer.getBoundingClientRect();
-
-  const pCenterX = (pRect.left - mapRect.left) + pRect.width / 2;
-  const pCenterY = (pRect.top - mapRect.top) + pRect.height / 2;
-
   const scale = 1.4;
-  let dx = mapRect.width / 2 - pCenterX * scale;
-  let dy = mapRect.height / 2 - pCenterY * scale;
-
-  const scaledWidth = mapRect.width * scale;
-  const scaledHeight = mapRect.height * scale;
-  const maxDx = 0; const minDx = mapRect.width - scaledWidth;
-  const maxDy = 0; const minDy = mapRect.height - scaledHeight;
-  dx = Math.min(maxDx, Math.max(minDx, dx));
-  dy = Math.min(maxDy, Math.max(minDy, dy));
-
+  let dx = mapRect.width / 2 - ((pRect.left - mapRect.left) + pRect.width / 2) * scale;
+  let dy = mapRect.height / 2 - ((pRect.top - mapRect.top) + pRect.height / 2) * scale;
+  
+  // Limites básicos para não sair muito da tela
+  const maxDx = mapRect.width * 0.5;
+  const minDx = -mapRect.width * 0.5;
+  
+  // Animação de zoom
   mapInner.style.transform = `scale(${scale}) translate(${dx}px, ${dy}px)`;
 
-  const containerRectAfter = mapContainer.getBoundingClientRect();
-  const scrollLeft = window.scrollX + containerRectAfter.left - (window.innerWidth - containerRectAfter.width) / 2;
-  const scrollTop = window.scrollY + containerRectAfter.top - (window.innerHeight - containerRectAfter.height) / 2;
-  window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
+  // Scroll suave para o container
+  mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   transientLabel = document.createElement('div');
   transientLabel.className = 'focus-label';
-  transientLabel.innerHTML = `${printer.name} <span class="font-normal text-xs text-gray-500 ml-2">(${printer.selb})</span>`;
+  transientLabel.innerHTML = `${printer.name}`;
   transientLabel.style.left = `50%`;
   transientLabel.style.top = `50%`;
-  transientLabel.style.transform = `translate(-50%, calc(-100% - 20px))`;
+  transientLabel.style.transform = `translate(-50%, -50px)`;
   mapContainer.appendChild(transientLabel);
 
   focusResetTimer = setTimeout(() => {
@@ -1027,15 +972,12 @@ floorSelect.addEventListener('change', (e) => {
   
 document.addEventListener('keydown', (e) => {
     if (e.key === "Escape") {
-        detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
+        detailsModal.classList.add('hidden');
         searchResultsPanel.style.display = 'none';
-        if (searchContainer.classList.contains('expanded')) {
-            searchContainer.classList.remove('expanded'); searchInput.value = '';
-        }
+        searchContainer.classList.remove('expanded');
     }
 });
 
-// load & render
 loadPrinters();
 updateMapImage();
 });
