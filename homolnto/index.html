@@ -2,77 +2,14 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-  <title>MapaNto - Acesso Restrito</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MapaNto</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1IF4Bt_g9jOdJbssEszdeZ2-3FJ2JsPY",
-      authDomain: "mapanto-3e05c.firebaseapp.com",
-      projectId: "mapanto-3e05c",
-      storageBucket: "mapanto-3e05c.firebasestorage.app",
-      messagingSenderId: "56800934624",
-      appId: "1:56800934624:web:bf0d51cc47230b12fb6e85",
-      measurementId: "G-G1D32075W9"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    const loginScreen = document.getElementById('login-screen');
-    const appContent = document.getElementById('app-content');
-    const loginForm = document.getElementById('login-form');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const loginError = document.getElementById('login-error');
-    const btnLogin = document.getElementById('btn-login');
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginScreen.classList.add('hidden');
-        appContent.classList.remove('hidden');
-        
-        // CORREÇÃO: No mobile, inicia o painel colapsado para ver o mapa
-        if (window.innerWidth < 900) {
-            const sidebar = document.getElementById('ip-tools-sidebar');
-            const btn = document.getElementById('collapse-panel');
-            if(sidebar && btn) {
-                sidebar.classList.add('collapsed');
-                btn.textContent = '+';
-            }
-        }
-      } else {
-        loginScreen.classList.remove('hidden');
-        appContent.classList.add('hidden');
-      }
-    });
-
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = emailInput.value;
-      const password = passwordInput.value;
-
-      btnLogin.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
-      loginError.classList.add('hidden');
-
-      signInWithEmailAndPassword(auth, email, password)
-        .catch((error) => {
-          btnLogin.textContent = "Entrar";
-          loginError.textContent = "Email ou senha incorretos.";
-          loginError.classList.remove('hidden');
-        });
-    });
-
-    window.logoutApp = () => {
-        signOut(auth).then(() => { location.reload(); });
-    };
-  </script>
-
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <link rel="icon" type="image/png" href="./pardinilogo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./pardinilogo.png">
   <meta name="theme-color" content="#F3F0EC">
@@ -81,97 +18,24 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
 
-    /* --- ESTILOS RESPONSIVOS CORRIGIDOS --- */
-    
-    /* Container do Mapa */
-    #map-container {
-        /* Garante que o mapa não estoure a tela */
-        width: 100%; 
-        max-width: 100vw;
-        height: auto;
+    /* pontos da impressora */
+    .printer-point { 
+      position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer;
+      transition: all 0.25s ease; display:flex; align-items:center; justify-content:center;
+      transform:translate(-50%,-50%); z-index:20;
+      --point-color: #3b82f6;
     }
-
-    /* Painel Lateral (Sidebar) */
-    #ip-tools-sidebar {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 350px;
-      height: 100vh;
-      background: white;
-      z-index: 60;
-      box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .printer-point::before { 
+      content:''; position:absolute; width:100%; height:100%; border-radius:9999px;
+      animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; 
     }
-
-    /* Estado Colapsado (Escondido) */
-    #ip-tools-sidebar.collapsed {
-      transform: translateX(100%);
-    }
-
-    /* Botão de Collapse (Aba lateral) */
-    #collapse-panel {
-      position: absolute;
-      left: -40px; /* Joga o botão para fora do painel, à esquerda */
-      top: 80px;   /* Altura confortável para o dedo */
-      width: 40px;
-      height: 40px;
-      background: #3D405B;
-      color: white;
-      border-radius: 8px 0 0 8px; /* Arredonda só a esquerda */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 1.2rem;
-      box-shadow: -4px 2px 10px rgba(0,0,0,0.1);
-      z-index: 70;
-      border: none;
-    }
-
-    /* Ajuste para Desktop: empurra o mapa quando painel está aberto */
-    @media (min-width: 901px) {
-        .container-with-sidebar { margin-right: 350px; transition: margin 0.3s; }
-        body:has(#ip-tools-sidebar.collapsed) .container-with-sidebar { margin-right: 0; }
-    }
-
-    /* Ajuste para Mobile (Celulares) */
-    @media (max-width: 900px) {
-      #ip-tools-sidebar {
-        width: 85%; /* Ocupa quase toda a tela, mas deixa ver um tiquinho do fundo */
-        max-width: 320px;
-      }
-      
-      /* No mobile, o mapa SEMPRE ocupa 100%, o painel fica por cima */
-      .container-with-sidebar { margin-right: 0 !important; }
-      
-      /* Ajusta botões do mapa para não ficarem embaixo do botão de collapse */
-      #side-actions { top: 10px; right: 10px; }
-      
-      /* Ajuste da Modal para telas pequenas */
-      .modal-content {
-          max-height: 85vh; /* Limita altura */
-          overflow-y: auto; /* Permite rolar se o conteúdo for grande */
-          width: 95% !important; /* Mais largo no mobile */
-      }
-    }
-
-    /* --- FIM DOS ESTILOS RESPONSIVOS --- */
-
-    /* Estilos base (mantidos) */
-    .printer-point { position: absolute; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer; transition: all 0.25s ease; display:flex; align-items:center; justify-content:center; transform:translate(-50%,-50%); z-index:20; --point-color: #3b82f6; }
-    .printer-point::before { content:''; position:absolute; width:100%; height:100%; border-radius:9999px; animation:pulse 2s infinite; background-color: var(--point-color); opacity:0.75; }
     .printer-point:hover { transform: translate(-50%, -50%) scale(1.25); z-index:25; }
     .printer-point-icon{ width:14px; height:14px; color:white; z-index:30; }
     @keyframes pulse { 0%{transform:scale(0.95);}70%{transform:scale(1);}100%{transform:scale(0.95);} }
     .highlighted { transform: translate(-50%, -50%) scale(1.6) !important; z-index:60 !important; transition: transform .2s ease; }
     .highlighted::before { animation: highlight-pulse 1s infinite !important; background-color: rgba(59,130,246,0.95) !important; }
     @keyframes highlight-pulse { 0%{box-shadow:0 0 0 0 rgba(59,130,246,0.8);}70%{box-shadow:0 0 0 18px rgba(59,130,246,0);}100%{box-shadow:0 0 0 0 rgba(59,130,246,0);} }
+
     .icon-hitbox { display:inline-flex; align-items:center; justify-content:center; padding:8px; border-radius:9999px; cursor:pointer; -webkit-tap-highlight-color: transparent; }
     .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:40; display:flex; align-items:center; justify-content:center; }
     .modal-content { z-index:50; }
@@ -179,15 +43,29 @@
     .toast.show { opacity:1; transform:translateY(0); }
     #map-tooltip { position:absolute; background:#3D405B; color:white; padding:8px 12px; border-radius:6px; font-size:.875rem; line-height:1.4; opacity:0; visibility:hidden; transition:opacity .15s, visibility .15s; pointer-events:none; z-index:60; transform: translate(-50%,-125%); white-space:nowrap; }
     #map-tooltip.show { opacity:1; visibility:visible; }
+
     .focus-label { position:absolute; transform: translate(-50%,-120%); background: rgba(255,255,255,0.95); border-radius:6px; padding:6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index:45; font-weight:600; white-space:nowrap; }
+
     #map-inner { position: relative; width: 100%; height: 100%; transform-origin: 0 0; transition: transform 250ms cubic-bezier(.2,.9,.3,1); }
+
+    /* busca expandida */
     #search-input { transition: width 300ms ease-in-out; width: 0; padding-left: 0; padding-right: 0; }
     #search-container.expanded #search-input { width: 250px; padding-left: 1rem; padding-right: 0.5rem; }
     #search-results { position: absolute; top: 110%; right: 0; width: 300px; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto; display: none; }
     .result-item:hover, .result-item:focus { background-color: #f0f0f0; outline: none; }
+
     .square { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
     .status-row { display: flex; align-items: center; gap: 10px; }
     .status-text { font-weight: 700; font-size: 18px; }
+
+    /* Painel Lateral */
+    #ip-tools-sidebar {
+      position: fixed; top: 0; right: 0; width: 350px; height: 100vh;
+      background: white; z-index: 60; box-shadow: -10px 0 30px rgba(0,0,0,0.08);
+      padding: 18px; display: flex; flex-direction: column; gap: 12px;
+      transition: transform .28s ease;
+    }
+    #ip-tools-sidebar.collapsed { transform: translateX(100%); }
     #ip-tools-sidebar .header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     #ip-tools-sidebar h3 { margin:0; font-size:1.05rem; }
     #ip-tools-sidebar .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
@@ -197,146 +75,138 @@
     #panel-log { height: 200px; overflow-y: auto; background:#0f172a; color:#d1fae5; padding:12px; border-radius:8px; font-family: ui-monospace, Menlo, Monaco, monospace; font-size:12px; }
     #panel-current-ip { padding:8px; background:#f3f4f6; border-radius:6px; font-family: ui-monospace, Menlo, Monaco, monospace; }
     
-    .login-bg {
-        background-color: #F3F0EC;
-        background-image: radial-gradient(#E07A5F 0.5px, transparent 0.5px), radial-gradient(#3D405B 0.5px, #F3F0EC 0.5px);
-        background-size: 20px 20px;
-        background-position: 0 0, 10px 10px;
+    @media (max-width: 900px) {
+      #ip-tools-sidebar { width: 320px; }
+      .container-with-sidebar { margin-right: 0; }
+    }
+    @media (min-width: 901px) {
+      .container-with-sidebar { margin-right: 360px; }
+    }
+
+    /* Botão Collapse */
+    #collapse-panel {
+      position: absolute; left: -36px; top: 10px;
+      background: #ffffff; border: 1px solid #e5e7eb;
+      padding: 6px 8px; border-radius: 8px; z-index: 9999;
+      cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
   </style>
 </head>
-<body class="bg-[#F3F0EC] text-[#3D405B] h-screen overflow-hidden">
-
-  <div id="login-screen" class="fixed inset-0 z-[9999] flex items-center justify-center login-bg p-4">
-    <div class="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-white/50">
-        <div class="text-center mb-8">
-             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#3D405B] text-white mb-4 shadow-lg">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-             </div>
-            <h1 class="text-2xl font-bold text-[#3D405B]">MapaNto</h1>
-            <p class="text-gray-500 text-sm mt-1">Acesso Restrito ao Mapeamento</p>
-        </div>
-
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email Corporativo</label>
-                <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E07A5F] focus:border-[#E07A5F] transition-colors" placeholder="seu.email@empresa.com.br">
-            </div>
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
-                <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E07A5F] focus:border-[#E07A5F] transition-colors" placeholder="••••••••">
-            </div>
-            <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 p-2 rounded text-center font-medium"></div>
-            <button type="submit" id="btn-login" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#3D405B] hover:bg-[#2e3046] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3D405B] transition-all transform active:scale-95">
-                Entrar
+<body class="bg-[#F3F0EC] text-[#3D405B]">
+  <div id="side-actions" class="fixed top-4 right-16 z-30 flex flex-col items-end gap-3">
+    <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
+      <form id="search-form" class="flex items-center" role="search">
+        <input id="search-input" type="text" placeholder="Buscar por Nome ou SELB..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar impressora">
+        <div id="search-hitbox" class="icon-hitbox" title="Buscar">
+            <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600" aria-label="Abrir pesquisa">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </button>
-        </form>
-        <div class="mt-6 text-center text-xs text-gray-400">©Copyright by Pedro.Assis e Diego.Pereira </div>
+        </div>
+      </form>
+      <div id="search-results" aria-hidden="true" role="listbox"></div>
     </div>
   </div>
 
-  <div id="app-content" class="hidden h-full overflow-auto">
-      
-      <div id="side-actions" class="fixed top-4 right-4 z-30 flex flex-col items-end gap-3">
-        <div id="search-container" class="relative flex items-center justify-end bg-white rounded-full shadow-md" aria-expanded="false" aria-controls="search-results">
-          <form id="search-form" class="flex items-center" role="search">
-            <input id="search-input" type="text" placeholder="Buscar..." class="h-12 border-none rounded-l-full focus:ring-0 bg-transparent" aria-label="Buscar">
-            <div id="search-hitbox" class="icon-hitbox" title="Buscar">
-                <button type="button" id="search-icon-btn" class="w-10 h-10 flex items-center justify-center text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button>
-            </div>
-          </form>
-          <div id="search-results" aria-hidden="true" role="listbox"></div>
+  <div id="main-wrapper" class="container mx-auto p-4 md:p-8 container-with-sidebar">
+    <header class="text-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold">Mapeamento de Impressoras Térmicas</h1><h5>By Pedro Assis e Diego Pereira</h5>
+        <select id="floor-select" class="mt-4 p-2 border rounded" aria-label="Selecionar andar">
+          <option value="1">Andar 1</option>
+          <option value="2">Andar 2</option>
+        </select>
+    </header>
+    <main id="map-and-content">
+      <div id="map-container" 
+           class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-4 border-transparent transition-colors duration-300" 
+           style="width: min(3840px, 92vw); aspect-ratio: 3840 / 2715;">
+        <div id="map-inner" class="relative w-full h-full">
+          <img id="map-image" src="plantanto.jpg" alt="Planta do escritório" 
+               class="w-full h-full object-contain bg-white" 
+               onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
         </div>
+        <div id="map-tooltip" role="status" aria-live="polite"></div>
       </div>
-
-      <div id="main-wrapper" class="container mx-auto p-2 md:p-8 container-with-sidebar">
-        <header class="text-center mb-4 md:mb-6">
-            <h1 class="text-2xl md:text-4xl font-bold">Mapeamento de Impressoras</h1>
-            <h5 class="text-sm md:text-base">By Pedro Assis e Diego Pereira</h5>
-            <select id="floor-select" class="mt-2 p-2 border rounded" aria-label="Selecionar andar">
-              <option value="1">Andar 1</option>
-              <option value="2">Andar 2</option>
-            </select>
-        </header>
-        <main id="map-and-content">
-          <div id="map-container" class="relative mx-auto shadow-2xl rounded-lg overflow-hidden border-2 border-transparent transition-colors duration-300" style="aspect-ratio: 3840 / 2715;">
-            <div id="map-inner" class="relative w-full h-full">
-              <img id="map-image" src="./plantanto.jpg" alt="Planta" class="w-full h-full object-contain bg-white" onerror="this.onerror=null;this.src='https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel';">
-            </div>
-            <div id="map-tooltip" role="status" aria-live="polite"></div>
-          </div>
-        </main>
-      </div>
-
-      <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
-        <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
-          <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-2" aria-label="Fechar">✕</button>
-          <h2 id="modal-title" class="text-xl md:text-2xl font-bold mb-4 pr-8"></h2>
-          <div class="space-y-3 text-gray-700 text-sm md:text-base">
-            <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
-            <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
-            <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
-            <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
-          </div>
-          <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
-            <div class="status-row">
-              <span id="status-sq" class="square" style="background:#ccc"></span>
-              <div id="status-text" class="status-text text-base">--</div>
-            </div>
-            <div id="status-message" class="message mt-2 text-sm"></div>
-          </div>
-          <div class="mt-6 space-y-2">
-            <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
-            <div class="grid grid-cols-3 gap-2">
-              <button id="check-status-btn" class="px-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-xs md:text-sm">Status</button>
-              <button id="calibrate-btn" class="px-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-xs md:text-sm">Calibrar</button>
-              <button id="head-test-btn" class="px-1 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-xs md:text-sm">Teste Cabeça</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
-
-      <aside id="ip-tools-sidebar" aria-label="IP Tools — Painel lateral">
-        <button id="collapse-panel" title="Alternar painel">—</button>
-        <div class="header">
-          <h3 class="font-semibold">IP Tools</h3>
-        </div>
-        <div>
-          <label class="font-semibold text-sm">IP</label>
-          <div class="controls mt-2">
-            <input id="ip-input-panel" type="text" placeholder="ex: 172.19.114.25" class="p-2 border rounded mono" />
-            <button id="set-ip-panel" class="px-3 py-2 bg-sky-600 text-white rounded">Definir</button>
-          </div>
-        </div>
-        <div id="panel-buttons" class="mt-2">
-          <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded text-sm">Status</button>
-          <button id="btn-open-panel" class="p-2 bg-gray-700 text-white rounded text-sm">Acessar</button>
-          <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded text-sm">Calibrar</button>
-          <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded text-sm">Teste</button>
-        </div>
-        <div>
-          <label class="font-semibold text-sm">IP atual:</label>
-          <div id="panel-current-ip" class="mono mt-1 text-sm">nenhum</div>
-        </div>
-        <div>
-          <label class="font-semibold text-sm">Log</label>
-          <div id="panel-log" aria-live="polite" role="log"></div>
-        </div>
-        <div class="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-2">
-           <button onclick="window.logoutApp()" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-               Sair
-           </button>
-           <div class="text-xs text-center text-gray-500">proxy.php — Túnel</div>
-        </div>
-      </aside>
+    </main>
   </div>
+
+  <div id="details-modal" class="modal-backdrop hidden" aria-hidden="true">
+    <div class="modal-content bg-white w-11/12 max-w-md mx-auto rounded-lg shadow-xl p-6 relative" role="dialog" aria-modal="true">
+      <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-gray-800" aria-label="Fechar">✕</button>
+      <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
+      <div class="space-y-3 text-gray-700">
+        <p><strong>Departamento:</strong> <span id="modal-department"></span></p>
+        <p><strong>SELB:</strong> <span id="modal-selb" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+        <p><strong>Endereço IP:</strong> <span id="modal-ip" class="font-mono bg-gray-100 px-2 py-1 rounded"></span></p>
+        <p><strong>Observações:</strong> <div id="modal-observations" class="bg-gray-100 px-2 py-1 rounded mt-1 p-2 text-sm whitespace-pre-wrap"></div></p>
+      </div>
+      <div id="status-display" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+        <div class="status-row">
+          <span id="status-sq" class="square" style="background:#ccc"></span>
+          <div id="status-text" class="status-text">--</div>
+        </div>
+        <div id="status-message" class="message mt-2 text-sm"></div>
+      </div>
+      <div class="mt-6 space-y-2">
+        <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="block text-center px-4 py-3 bg-[#E07A5F] text-white rounded-lg hover:bg-opacity-90 transition-colors">Acessar IP</a>
+        <div class="grid grid-cols-3 gap-2">
+          <button id="check-status-btn" class="px-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Status</button>
+          <button id="calibrate-btn" class="px-2 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Calibrar</button>
+          <button id="head-test-btn" class="px-2 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm">Teste Cabeça</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-notification" class="toast" role="status" aria-live="polite"></div>
+
+  <aside id="ip-tools-sidebar" aria-label="IP Tools — Painel lateral">
+    <div class="header">
+      <h3 class="font-semibold">IP Tools</h3>
+      <button id="collapse-panel" title="Ocultar painel" class="px-2 py-1 rounded bg-gray-100">—</button>
+    </div>
+
+    <div>
+      <label class="font-semibold text-sm">IP (ex: 172.19.114.25)</label>
+      <div class="controls mt-2">
+        <input id="ip-input-panel" type="text" placeholder="ex: 172.19.114.25" class="p-2 border rounded mono" />
+        <button id="set-ip-panel" class="px-3 py-2 bg-sky-600 text-white rounded">Definir</button>
+      </div>
+    </div>
+
+    <div id="panel-buttons" class="mt-2">
+      <button id="btn-status-panel" class="p-2 bg-blue-600 text-white rounded">Status</button>
+      <button id="btn-load-factory-panel" class="p-2 bg-orange-600 text-white rounded">Load Factory</button>
+      <button id="btn-restart-panel" class="p-2 bg-red-600 text-white rounded">Reiniciar</button>
+      <button id="btn-zt421-panel" class="p-2 bg-indigo-700 text-white rounded">ZT421</button>
+      <button id="btn-calibrate-panel" class="p-2 bg-green-600 text-white rounded">Calibrar</button>
+      <button id="btn-headtest-panel" class="p-2 bg-purple-600 text-white rounded">Teste Cabeça</button>
+    </div>
+
+    <div>
+      <label class="font-semibold text-sm">IP atual:</label>
+      <div id="panel-current-ip" class="mono mt-1">nenhum</div>
+    </div>
+
+    <div>
+      <label class="font-semibold text-sm">Comando ZPL manual</label>
+      <textarea id="panel-rawcmd" class="w-full mt-1 p-2 border rounded mono text-xs" rows="4" placeholder="Cole ou digite o ZPL aqui"></textarea>
+      <button id="btn-send-raw-panel" class="w-full mt-2 p-2 bg-black text-green-400 rounded mono">Enviar comando</button>
+    </div>
+
+    <div>
+      <div id="panel-log" aria-live="polite" role="log"></div>
+    </div>
+
+    <div class="mt-auto text-xs text-gray-500">
+      <div>proxy.php — Túnel Cloudflare</div>
+    </div>
+  </aside>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const API_BASE_URL = "https://kissing-reactions-winners-nearest.trycloudflare.com/proxy.php"; 
+  // CONFIG
+  // ATUALIZAÇÃO: Link da API (Tunnel Cloudflare)
+  const API_BASE_URL = "https://marble-ward-usb-nested.trycloudflare.com/proxy.php"; 
   const FORCE_HARDCODED = true;
   const LOCALSTORAGE_KEY = 'interactiveMapPrinters';
 
@@ -356,15 +226,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const calibrateBtn = document.getElementById('calibrate-btn');
   const headTestBtn = document.getElementById('head-test-btn');
 
+  // Sidebar
   const ipInputPanel = document.getElementById('ip-input-panel');
   const setIpPanelBtn = document.getElementById('set-ip-panel');
   const btnStatusPanel = document.getElementById('btn-status-panel');
-  const btnOpenPanel = document.getElementById('btn-open-panel');
   const btnCalibratePanel = document.getElementById('btn-calibrate-panel');
   const btnHeadTestPanel = document.getElementById('btn-headtest-panel');
   const panelLog = document.getElementById('panel-log');
   const panelCurrentIp = document.getElementById('panel-current-ip');
   const collapsePanelBtn = document.getElementById('collapse-panel');
+  const btnLoadFactoryPanel = document.getElementById('btn-load-factory-panel');
+  const btnRestartPanel = document.getElementById('btn-restart-panel');
+  const btnZT421Panel = document.getElementById('btn-zt421-panel');
+  const rawCmdPanel = document.getElementById('panel-rawcmd');
+  const btnSendRawPanel = document.getElementById('btn-send-raw-panel');
 
   let printerData = [];
   let transientLabel = null;
@@ -373,107 +248,106 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPrinterIp = '';
 
   const initialPrinters2floor = [
-{name:'CAF114134', department:'CAF', selb:'32F1', ip:'172.19.114.134', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
-{name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
-{name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
-{name:'CPI114210', department:'MONTAGEM DE KITS', selb:'5H62', ip:'172.19.114.210', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}}
- ];
+    {name:'CAF114134', department:'CAF', selb:'32F1', ip:'172.19.114.134', observations:'', floor:2, pos:{top:'53.23084314196493%', left:'16.88179347826087%'}},
+    {name:'LOG114226', department:'LOGISTICA', selb:'CABTEC LOG114226', ip:'172.19.114.226', observations:'', floor:2, pos:{top:'60.53372367976579%', left:'19.955948305601996%'}},
+    {name:'CPI038101', department:'MONTAGEM DE KITS', selb:'SNE6', ip:'172.19.114.93', observations:'', floor:2, pos:{top:'63.73656620250472%', left:'4.387477996267106%'}},
+    {name:'CPI114210', department:'MONTAGEM DE KITS', selb:'5H62', ip:'172.19.114.210', observations:'', floor:2, pos:{top:'61.7347896257929%', left:'4.330865376960434%'}}
+  ];
 
   const initialPrinters = [
-{name:'teste t.i', department:'Customer Service', ip:'172.19.114.114', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
-{name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
-{name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
-{name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
-{name:'CRP04095', department:'Coprologia', ip:'172.19.114.92', selb:'GC420t - Minietiqueta CRP04095', pos:{top:'5.284650492433341%', left:'19.39538043478261%'}, floor:1, observations:'DRIVER GC420T (7x3) - CRP04095'},
-{name:'MIC22094', department:'Micobacterias', ip:'172.19.114.220', selb:'DCC8', pos:{top:'16.04612058611578%', left:'43.51222826086957%'}, floor:1, observations:''},
-{name:'MIC02117', department:'Micobacterias', ip:'172.19.114.117', selb:'GC420t - Minietiqueta - MIC02117', pos:{top:'17.775642565457602%', left:'41.88179347826087%'}, floor:1, observations:'DRIVER GC420T (5x3)'},
-{name:'MIC02494', department:'Micobacterias', ip:'172.19.114.24', selb:'4Q88', pos:{top:'7.526679928436487%', left:'45.71469009013791%'}, floor:1, observations:''},
-{name:'CDA10394', department:'CAC', ip:'172.19.141.103', selb:'SPR2', pos:{top:'77.15589718952678%', left:'83.86548913043478%'}, floor:1, observations:''},
-{name:'CDA13094', department:'CDA', ip:'172.19.141.130', selb:'8KQ6', pos:{top:'83.78573144367043%', left:'81.35190217391305%'}, floor:1, observations:''},
-{name:'CDA15194', department:'CDA', ip:'172.19.141.151', selb:'ZYG3', pos:{top:'76.96372808071102%', left:'80.53668478260869%'}, floor:1, observations:''},
-{name:'CDA12194', department:'CDA', ip:'172.19.141.121', selb:'8KP6', pos:{top:'86.6682680759068%', left:'77.34375%'}, floor:1, observations:''},
-{name:'CDA10094', department:'CDA', ip:'172.19.141.100', selb:'PGL6', pos:{top:'82.1522940187365%', left:'70.95788043478261%'}, floor:1, observations:''},
-{name:'CDA14494', department:'CDA', ip:'172.19.141.144', selb:'3V12', pos:{top:'74.65769877492193%', left:'80.40081521739131%'}, floor:1, observations:''},
-{name:'LVR19394', department:'Linha Verde', ip:'172.19.114.193', selb:'6PL1', pos:{top:'83.20922411722316%', left:'90.72690217391305%'}, floor:1, observations:''},
-{name:'TOX11425', department:'Toxicologia', ip:'172.19.114.25', selb:'0AFP', pos:{top:'54.479942349267354%', left:'51.32472826086957%'}, floor:1, observations:''},
-{name:'TOX11429', department:'Toxicologia', ip:'172.19.114.29', selb:'NDK3', pos:{top:'53.13475858755705%', left:'49.62635869565217%'}, floor:1, observations:''},
-{name:'HEM14094', department:'Hematologia', ip:'172.19.114.140', selb:'0K65', pos:{top:'48.13836175834735%', left:'56.01222826086957%'}, floor:1, observations:''},
-{name:'AML22194', department:'Linha Amarela', ip:'172.19.114.221', selb:'7OL4', pos:{top:'67.93177996637041%', left:'69.7350543478261%'}, floor:1, observations:''},
-{name:'CITO00898', department:'Citometria', ip:'172.19.114.98', selb:'7ZK8', pos:{top:'41.02810473216431%', left:'73.33559782608695%'}, floor:1, observations:''},
-{name:'AIM00817', department:'Linha Vermelha', ip:'172.19.114.172', selb:'3L29', pos:{top:'46.985347105452796%', left:'82.30298913043478%'}, floor:1, observations:''},
-{name:'MIC07894', department:'Microbiologia', ip:'172.19.114.78', selb:'16VX', pos:{top:'14.989190487629115%', left:'27.47961956521739%'}, floor:1, observations:''},
-{name:'MIC24094', department:'Microbiologia', ip:'172.19.114.240', selb:'5G78', pos:{top:'12.49099207302426%', left:'27.4116847826087%'}, floor:1, observations:''},
-{name:'MIC19245', department:'Microbiologia', ip:'172.19.114.245', selb:'YEJ4', pos:{top:'9.320201777564256%', left:'27.34375%'}, floor:1, observations:''},
-{name:'MIC02094', department:'Microbiologia', ip:'172.19.114.20', selb:'ZT230 - PrintServer (MIC02094)', pos:{top:'14.989190487629115%', left:'28.634510869565215%'}, floor:1, observations:''},
-{name:'MIC23994', department:'Microbiologia', ip:'172.19.114.239', selb:'4R83', pos:{top:'13.067499399471535%', left:'28.566576086956523%'}, floor:1, observations:''},
-{name:'MIC02194', department:'Microbiologia', ip:'172.19.114.21', selb:'ZT230 - PrintServer (MIC02194)', pos:{top:'11.241892865721836%', left:'28.634510869565215%'}, floor:1, observations:''},
-{name:'MIC02118', department:'Microbiologia', ip:'172.19.114.118', selb:'ZT230 - PrintServer (MIC02118)', pos:{top:'9.320201777564256%', left:'28.634510869565215%'}, floor:1, observations:''},
-{name:'MIC23894', department:'Microbiologia', ip:'172.19.114.238', selb:'5G71', pos:{top:'9.320201777564256%', left:'30.197010869565215%'}, floor:1, observations:''},
-{name:'VET16694', department:'Veterinaria', selb:'OJN3', ip:'172.19.114.166', pos:{top:'66.2187691576274%', left:'90.89156029686242%'}, floor:1, observations:''},
-{name:'CDA11494', department:'CDA', selb:'8KN4', ip:'172.19.141.114', pos:{top:'74.54615971674862%', left:'79.11613548107458%'}, floor:1, observations:''},
-{name:'gc t.i', department:'NAO SEI', selb:'NQL7', ip:'172.19.114.170', pos:{top:'84.87532685258167%', left:'49.39451034507161%'}, floor:1, observations:''},
-{name:'GMO09594', department:'NAO SEI', selb:'5DM9', ip:'172.19.114.95', pos:{top:'84.87532685258167%', left:'48.20564533963149%'}, floor:1, observations:''},
-{name:'zt ti', department:'NAO SEI', selb:'YEC2', ip:'172.19.107.105', pos:{top:'86.47674811395113%', left:'47.52629390795142%'}, floor:1, observations:''},
-{name:'CDA14149', department:'NAO SEI', selb:'YEE8', ip:'172.19.114.149', pos:{top:'87.99809831225213%', left:'50.13047439605835%'}, floor:1, observations:''},
-{name:'CDA10592', department:'CDA', selb:'8LO1', ip:'172.19.114.105', pos:{top:'82.31305283439052%', left:'48.82838415200489%'}, floor:1, observations:''},
-{name:'CDA10894', department:'CDA', selb:'3V63', ip:'172.19.141.108', pos:{top:'82.39312389745899%', left:'50.470150111898384%'}, floor:1, observations:''},
-{name:'CDA12994', department:'CDA', selb:'5N14', ip:'172.19.141.129', pos:{top:'82.47319496052747%', left:'52.111916071791875%'}, floor:1, observations:''},
-{name:'CDA10092', department:'CDA', selb:'7ZQ4', ip:'172.19.141.153', pos:{top:'82.39312389745899%', left:'53.866907270298725%'}, floor:1, observations:''},
-{name:'CDA16162', department:'CDA', selb:'7OC4', ip:'172.19.141.162', pos:{top:'82.39312389745899%', left:'55.508673230192215%'}, floor:1, observations:''},
-{name:'CDA12594', department:'CDA', selb:'NDI2', ip:'172.19.141.125', pos:{top:'80.31127625767868%', left:'55.508673230192215%'}, floor:1, observations:''},
-{name:'CDA15094', department:'CDA', selb:'5G98', ip:'172.19.141.150', pos:{top:'80.31127625767868%', left:'53.866907270298725%'}, floor:1, observations:''},
-{name:'CDA16194', department:'CDA', selb:'8LK8', ip:'172.19.114.194', pos:{top:'80.39134732074716%', left:'50.526762731205054%'}, floor:1, observations:''},
-{name:'CDA13694', department:'CDA', selb:'YEJ3', ip:'172.19.141.136', pos:{top:'80.39134732074716%', left:'48.82838415200489%'}, floor:1, observations:''},
-{name:'CDA15294', department:'CDA', selb:'YEO4', ip:'172.19.141.152', pos:{top:'77.2685758610767%', left:'55.225610133658854%'}, floor:1, observations:''},
-{name:'CDA15794', department:'CDA', selb:'XLP6', ip:'172.19.114.157', pos:{top:'77.18850479800822%', left:'56.86737609355236%'}, floor:1, observations:''},
-{name:'CDA13894', department:'CDA', selb:'YEJ7', ip:'172.19.141.138', pos:{top:'77.2685758610767%', left:'58.50914205344585%'}, floor:1, observations:''},
-{name:'CDA13994', department:'CDA', selb:'YEM4', ip:'172.19.141.139', pos:{top:'77.2685758610767%', left:'60.207520632646016%'}, floor:1, observations:''},
-{name:'CDA10594', department:'CDA', selb:'YEK4', ip:'172.19.141.105', pos:{top:'75.34687034743335%', left:'60.207520632646016%'}, floor:1, observations:''},
-{name:'CDA11124', department:'CDA', selb:'YEQ3', ip:'172.19.141.124', pos:{top:'75.42694141050183%', left:'58.50914205344585%'}, floor:1, observations:''},
-{name:'TOX14224', department:'Toxicologia', selb:'3V61', ip:'172.19.114.227', pos:{top:'67.16310353110737%', left:'38.213315217391305%'}, floor:1, observations:''},
-{name:'TOX072', department:'Toxicologia Metais', selb:'3BS2', ip:'172.19.114.72', pos:{top:'69.46913283689646%', left:'35.224184782608695%'}, floor:1, observations:''},
-{name:'TOX11191', department:'Toxicologia', selb:'ZT230 - PrintServer (TOX11191)', ip:'172.19.114.191', pos:{top:'56.129815210999766%', left:'33.542976939203356%'}, floor:1, observations:''},
-{name:'TOX11214', department:'Toxicologia ZT230', selb:'DCR1', ip:'172.19.114.214', pos:{top:'60.14893105933221%', left:'40.31929347826087%'}, floor:1, observations:''},
-{name:'TOX11410', department:'Toxicologia', selb:'NCV8', ip:'172.19.114.10', pos:{top:'60.14893105933221%', left:'38.82472826086957%'}, floor:1, observations:''},
-{name:'TOX11412', department:'Toxicologia', selb:'8KL8', ip:'172.19.114.12', pos:{top:'57.971449661574646%', left:'44.242761988164425%'}, floor:1, observations:''},
-{name:'TOX114184', department:'Toxicologia', selb:'7ZH6', ip:'172.19.114.188', pos:{top:'60.45365261669732%', left:'44.242761988164425%'}, floor:1, observations:''},
-{name:'IMU14094', department:'Linha Amarela', selb:'6PO3', ip:'172.19.114.145', pos:{top:'49.644059102453426%', left:'70.73746782368707%'}, floor:1, observations:''},
-{name:'LAM11491', department:'NAO SEI', selb:'8KQ3', ip:'172.19.114.91', pos:{top:'54.76860713883571%', left:'75.66276570336757%'}, floor:1, observations:''},
-{name:'LVR114225', department:'LINHA VERMELHA', selb:'OJO4', ip:'172.19.114.225', pos:{top:'39.87509007926976%', left:'71.36548913043478%'}, floor:1, observations:''},
-{name:'LVER20694', department:'Linha Vermelha', selb:'NQQ1', ip:'172.19.114.206', pos:{top:'26.03891424453519%', left:'68.98777173913044%'}, floor:1, observations:''},
-{name:'GPR95198', department:'Centro de Comando', selb:'3L17', ip:'172.19.114.198', pos:{top:'38.52990631755945%', left:'79.38179347826086%'}, floor:1, observations:''},
-{name:'GQA90119', department:'Setor de Qualidade', selb:'YWB3', ip:'172.19.114.119', pos:{top:'64.21699258091557%', left:'83.13563145184831%'}, floor:1, observations:''},
-{name:'CPM00115', department:'CPM', selb:'3FO3', ip:'172.19.114.115', pos:{top:'47.40206933653617%', left:'30.259445019416358%'}, floor:1, observations:''},
-{name:'CPM16899', department:'CPM', selb:'5G66', ip:'172.19.114.168', pos:{top:'47.24192721039923%', left:'17.464993056108412%'}, floor:1, observations:''},
-{name:'DNA14994', department:'Genetica Molecular', selb:'8KO5', ip:'172.19.114.181', pos:{top:'41.15652641719526%', left:'60.773646825712746%'}, floor:1, observations:''},
-{name:'COP13694', department:'Genetica Molecular', selb:'YYR5', ip:'172.19.114.136', pos:{top:'41.23659748026373%', left:'59.13188086581924%'}, floor:1, observations:''},
-{name:'BRT09295', department:'Genetica Molecular', selb:'8KO6', ip:'172.19.114.101', pos:{top:'33.06934904727946%', left:'58.84881776928589%'}, floor:1, observations:''},
-{name:'GMO10894', department:'Genetica Molecular', selb:'PNL5', ip:'172.19.114.108', pos:{top:'41.23659748026373%', left:'55.16899751435218%'}, floor:1, observations:''},
-{name:'GMO10794', department:'Genetica Molecular', selb:'YYM1', ip:'172.19.114.107', pos:{top:'41.316668543332206%', left:'53.300781077231996%'}, floor:1, observations:'DRIVER ZD230 (10x3)'},
-{name:'GMO114175', department:'Genetica Molecular', selb:'GC420t - Minietiqueta GMO114175', ip:'172.19.114.175', pos:{top:'38.3540392097987%', left:'48.26225795893816%'}, floor:1, observations:'DRIVER SEM SER EPL (10,8x3)'},
-{name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
-{name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
-{name:'LOG09099', department:'PARDIS', selb:'OQD9', ip:'172.19.114.99', observations:'', floor:1, pos:{top:'94.06677876531347%', left:'43.91983695652174%'}},
-{name:'LOG114127', department:'PARDIS', selb:'32F2', ip:'172.19.114.127', observations:'', floor:1, pos:{top:'93.97069421090559%', left:'46.36548913043478%'}},
-{name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
-{name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
-{name:'LOG09032', department:'CPI', selb:'NBZ7', ip:'172.19.114.32', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'8.746649682880875%'}},
-{name:'LOG00228', department:'CPI', selb:'NDV4', ip:'172.19.114.228', observations:'', floor:1, pos:{top:'61.7347896257929%', left:'6.765208007147343%'}},
-{name:'CPI114195', department:'CPI', selb:'3T70', ip:'172.19.114.195', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'4.613928473493795%'}},
-{name:'LOG11447', department:'ALMOXARIFADO', selb:'CABTEC LOG11447', ip:'172.19.114.47', observations:'', floor:1, pos:{top:'88.63866681679991%', left:'12.822758272961282%'}},
-{name:'LOG0942', department:'ALMOXARIFADO', selb:'7YP5', ip:'172.19.114.242', observations:'', floor:1, pos:{top:'77.66893117641908%', left:'13.27565922741466%'}},
-{name:'LOG114179', department:'ALMOXARIFADO', selb:'5H66', ip:'172.19.114.179', observations:'', floor:1, pos:{top:'66.05862703149045%', left:'11.916956364054524%'}},
-{name:'LOG252106', department:'ALMOXARIFADO', selb:'5DM8', ip:'172.19.252.106', observations:'', floor:1, pos:{top:'69.34154061729785%', left:'11.916956364054524%'}},
-{name:'LOG114130', department:'ALMOXARIFADO', selb:'CABTEC LOG114130', ip:'172.19.114.130', observations:'', floor:1, pos:{top:'60.05329730135496%', left:'27.14575095754938%'}},
-{name:'LOG09594', department:'ALMOARIFADO', selb:'ZT230 - PrintServer (LOG09594)', ip:'172.19.114.126', observations:'', floor:1, pos:{top:'58.13159178771159%', left:'27.202363576856055%'}},
-{name:'LOG114165', department:'ALMOXARIFADO', selb:'CABTEC LOG114165', ip:'172.19.114.165', observations:'', floor:1, pos:{top:'77.74900223948754%', left:'29.80654406496298%'}},
-{name:'LOG11440', department:'ALMOXARIFADO', selb:'CABTEC LOG11440', ip:'172.19.114.040', observations:'', floor:1, pos:{top:'74.94651503209097%', left:'30.429282877336377%'}},
-{name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
-{name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
-{name:'LOG114164', department:'LOGISTICA', selb:'YEL3', ip:'172.19.114.164', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
-{name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
-];
+    {name:'teste t.i', department:'Customer Service', ip:'172.19.114.114', selb:'1LG9', pos:{top:'11.626231083353352%', left:'68.44429347826086%'}, floor:1, observations:''},
+    {name:'NCS14224', department:'Customer Service', ip:'172.19.114.224', selb:'OJL4', pos:{top:'16.814797021378812%', left:'68.51222826086956%'}, floor:1, observations:''},
+    {name:'MIC11475', department:'Microbiologia', ip:'172.19.114.75', selb:'GC420t - Minietiqueta (5x3) - MIC11475', pos:{top:'14.893105933221234%', left:'25.78125%'}, floor:1, observations:''},
+    {name:'MIC19194', department:'Microbiologia', ip:'172.19.114.192', selb:'5H04', pos:{top:'13.371867532435036%', left:'25.787048094189245%'}, floor:1, observations:''},
+    {name:'CRP04095', department:'Coprologia', ip:'172.19.114.92', selb:'GC420t - Minietiqueta CRP04095', pos:{top:'5.284650492433341%', left:'19.39538043478261%'}, floor:1, observations:'DRIVER GC420T (7x3) - CRP04095'},
+    {name:'MIC22094', department:'Micobacterias', ip:'172.19.114.220', selb:'DCC8', pos:{top:'16.04612058611578%', left:'43.51222826086957%'}, floor:1, observations:''},
+    {name:'MIC02117', department:'Micobacterias', ip:'172.19.114.117', selb:'GC420t - Minietiqueta - MIC02117', pos:{top:'17.775642565457602%', left:'41.88179347826087%'}, floor:1, observations:'DRIVER GC420T (5x3)'},
+    {name:'MIC02494', department:'Micobacterias', ip:'172.19.114.24', selb:'4Q88', pos:{top:'7.526679928436487%', left:'45.71469009013791%'}, floor:1, observations:''},
+    {name:'CDA10394', department:'CAC', ip:'172.19.141.103', selb:'SPR2', pos:{top:'77.15589718952678%', left:'83.86548913043478%'}, floor:1, observations:''},
+    {name:'CDA13094', department:'CDA', ip:'172.19.141.130', selb:'8KQ6', pos:{top:'83.78573144367043%', left:'81.35190217391305%'}, floor:1, observations:''},
+    {name:'CDA15194', department:'CDA', ip:'172.19.141.151', selb:'ZYG3', pos:{top:'76.96372808071102%', left:'80.53668478260869%'}, floor:1, observations:''},
+    {name:'CDA12194', department:'CDA', ip:'172.19.141.121', selb:'8KP6', pos:{top:'86.6682680759068%', left:'77.34375%'}, floor:1, observations:''},
+    {name:'CDA10094', department:'CDA', ip:'172.19.141.100', selb:'PGL6', pos:{top:'82.1522940187365%', left:'70.95788043478261%'}, floor:1, observations:''},
+    {name:'CDA14494', department:'CDA', ip:'172.19.141.144', selb:'3V12', pos:{top:'74.65769877492193%', left:'80.40081521739131%'}, floor:1, observations:''},
+    {name:'LVR19394', department:'Linha Verde', ip:'172.19.114.193', selb:'6PL1', pos:{top:'83.20922411722316%', left:'90.72690217391305%'}, floor:1, observations:''},
+    {name:'TOX11425', department:'Toxicologia', ip:'172.19.114.25', selb:'0AFP', pos:{top:'54.479942349267354%', left:'51.32472826086957%'}, floor:1, observations:''},
+    {name:'TOX11429', department:'Toxicologia', ip:'172.19.114.29', selb:'NDK3', pos:{top:'53.13475858755705%', left:'49.62635869565217%'}, floor:1, observations:''},
+    {name:'HEM14094', department:'Hematologia', ip:'172.19.114.140', selb:'0K65', pos:{top:'48.13836175834735%', left:'56.01222826086957%'}, floor:1, observations:''},
+    {name:'AML22194', department:'Linha Amarela', ip:'172.19.114.221', selb:'7OL4', pos:{top:'67.93177996637041%', left:'69.7350543478261%'}, floor:1, observations:''},
+    {name:'CITO00898', department:'Citometria', ip:'172.19.114.98', selb:'7ZK8', pos:{top:'41.02810473216431%', left:'73.33559782608695%'}, floor:1, observations:''},
+    {name:'AIM00817', department:'Linha Vermelha', ip:'172.19.114.172', selb:'3L29', pos:{top:'46.985347105452796%', left:'82.30298913043478%'}, floor:1, observations:''},
+    {name:'MIC07894', department:'Microbiologia', ip:'172.19.114.78', selb:'16VX', pos:{top:'14.989190487629115%', left:'27.47961956521739%'}, floor:1, observations:''},
+    {name:'MIC24094', department:'Microbiologia', ip:'172.19.114.240', selb:'5G78', pos:{top:'12.49099207302426%', left:'27.4116847826087%'}, floor:1, observations:''},
+    {name:'MIC19245', department:'Microbiologia', ip:'172.19.114.245', selb:'YEJ4', pos:{top:'9.320201777564256%', left:'27.34375%'}, floor:1, observations:''},
+    {name:'MIC02094', department:'Microbiologia', ip:'172.19.114.20', selb:'ZT230 - PrintServer (MIC02094)', pos:{top:'14.989190487629115%', left:'28.634510869565215%'}, floor:1, observations:''},
+    {name:'MIC23994', department:'Microbiologia', ip:'172.19.114.239', selb:'4R83', pos:{top:'13.067499399471535%', left:'28.566576086956523%'}, floor:1, observations:''},
+    {name:'MIC02194', department:'Microbiologia', ip:'172.19.114.21', selb:'ZT230 - PrintServer (MIC02194)', pos:{top:'11.241892865721836%', left:'28.634510869565215%'}, floor:1, observations:''},
+    {name:'MIC02118', department:'Microbiologia', ip:'172.19.114.118', selb:'ZT230 - PrintServer (MIC02118)', pos:{top:'9.320201777564256%', left:'28.634510869565215%'}, floor:1, observations:''},
+    {name:'MIC23894', department:'Microbiologia', ip:'172.19.114.238', selb:'5G71', pos:{top:'9.320201777564256%', left:'30.197010869565215%'}, floor:1, observations:''},
+    {name:'VET16694', department:'Veterinaria', selb:'OJN3', ip:'172.19.114.166', pos:{top:'66.2187691576274%', left:'90.89156029686242%'}, floor:1, observations:''},
+    {name:'CDA11494', department:'CDA', selb:'8KN4', ip:'172.19.141.114', pos:{top:'74.54615971674862%', left:'79.11613548107458%'}, floor:1, observations:''},
+    {name:'gc t.i', department:'NAO SEI', selb:'NQL7', ip:'172.19.114.170', pos:{top:'84.87532685258167%', left:'49.39451034507161%'}, floor:1, observations:''},
+    {name:'GMO09594', department:'NAO SEI', selb:'5DM9', ip:'172.19.114.95', pos:{top:'84.87532685258167%', left:'48.20564533963149%'}, floor:1, observations:''},
+    {name:'zt ti', department:'NAO SEI', selb:'YEC2', ip:'172.19.107.105', pos:{top:'86.47674811395113%', left:'47.52629390795142%'}, floor:1, observations:''},
+    {name:'CDA14149', department:'NAO SEI', selb:'YEE8', ip:'172.19.114.149', pos:{top:'87.99809831225213%', left:'50.13047439605835%'}, floor:1, observations:''},
+    {name:'CDA10592', department:'CDA', selb:'8LO1', ip:'172.19.114.105', pos:{top:'82.31305283439052%', left:'48.82838415200489%'}, floor:1, observations:''},
+    {name:'CDA10894', department:'CDA', selb:'3V63', ip:'172.19.141.108', pos:{top:'82.39312389745899%', left:'50.470150111898384%'}, floor:1, observations:''},
+    {name:'CDA12994', department:'CDA', selb:'5N14', ip:'172.19.141.129', pos:{top:'82.47319496052747%', left:'52.111916071791875%'}, floor:1, observations:''},
+    {name:'CDA10092', department:'CDA', selb:'7ZQ4', ip:'172.19.141.153', pos:{top:'82.39312389745899%', left:'53.866907270298725%'}, floor:1, observations:''},
+    {name:'CDA16162', department:'CDA', selb:'7OC4', ip:'172.19.141.162', pos:{top:'82.39312389745899%', left:'55.508673230192215%'}, floor:1, observations:''},
+    {name:'CDA12594', department:'CDA', selb:'NDI2', ip:'172.19.141.125', pos:{top:'80.31127625767868%', left:'55.508673230192215%'}, floor:1, observations:''},
+    {name:'CDA15094', department:'CDA', selb:'5G98', ip:'172.19.141.150', pos:{top:'80.31127625767868%', left:'53.866907270298725%'}, floor:1, observations:''},
+    {name:'CDA16194', department:'CDA', selb:'8LK8', ip:'172.19.114.194', pos:{top:'80.39134732074716%', left:'50.526762731205054%'}, floor:1, observations:''},
+    {name:'CDA13694', department:'CDA', selb:'YEJ3', ip:'172.19.141.136', pos:{top:'80.39134732074716%', left:'48.82838415200489%'}, floor:1, observations:''},
+    {name:'CDA15294', department:'CDA', selb:'YEO4', ip:'172.19.141.152', pos:{top:'77.2685758610767%', left:'55.225610133658854%'}, floor:1, observations:''},
+    {name:'CDA15794', department:'CDA', selb:'XLP6', ip:'172.19.114.157', pos:{top:'77.18850479800822%', left:'56.86737609355236%'}, floor:1, observations:''},
+    {name:'CDA13894', department:'CDA', selb:'YEJ7', ip:'172.19.141.138', pos:{top:'77.2685758610767%', left:'58.50914205344585%'}, floor:1, observations:''},
+    {name:'CDA13994', department:'CDA', selb:'YEM4', ip:'172.19.141.139', pos:{top:'77.2685758610767%', left:'60.207520632646016%'}, floor:1, observations:''},
+    {name:'CDA10594', department:'CDA', selb:'YEK4', ip:'172.19.141.105', pos:{top:'75.34687034743335%', left:'60.207520632646016%'}, floor:1, observations:''},
+    {name:'CDA11124', department:'CDA', selb:'YEQ3', ip:'172.19.141.124', pos:{top:'75.42694141050183%', left:'58.50914205344585%'}, floor:1, observations:''},
+    {name:'TOX14224', department:'Toxicologia', selb:'3V61', ip:'172.19.114.227', pos:{top:'67.16310353110737%', left:'38.213315217391305%'}, floor:1, observations:''},
+    {name:'TOX072', department:'Toxicologia Metais', selb:'3BS2', ip:'172.19.114.72', pos:{top:'69.46913283689646%', left:'35.224184782608695%'}, floor:1, observations:''},
+    {name:'TOX11191', department:'Toxicologia', selb:'ZT230 - PrintServer (TOX11191)', ip:'172.19.114.191', pos:{top:'56.129815210999766%', left:'33.542976939203356%'}, floor:1, observations:''},
+    {name:'TOX11214', department:'Toxicologia ZT230', selb:'DCR1', ip:'172.19.114.214', pos:{top:'60.14893105933221%', left:'40.31929347826087%'}, floor:1, observations:''},
+    {name:'TOX11410', department:'Toxicologia', selb:'NCV8', ip:'172.19.114.10', pos:{top:'60.14893105933221%', left:'38.82472826086957%'}, floor:1, observations:''},
+    {name:'TOX11412', department:'Toxicologia', selb:'8KL8', ip:'172.19.114.12', pos:{top:'57.971449661574646%', left:'44.242761988164425%'}, floor:1, observations:''},
+    {name:'TOX114184', department:'Toxicologia', selb:'7ZH6', ip:'172.19.114.188', pos:{top:'60.45365261669732%', left:'44.242761988164425%'}, floor:1, observations:''},
+    {name:'IMU14094', department:'Linha Amarela', selb:'6PO3', ip:'172.19.114.145', pos:{top:'49.644059102453426%', left:'70.73746782368707%'}, floor:1, observations:''},
+    {name:'LAM11491', department:'NAO SEI', selb:'8KQ3', ip:'172.19.114.91', pos:{top:'54.76860713883571%', left:'75.66276570336757%'}, floor:1, observations:''},
+    {name:'LVR114225', department:'LINHA VERMELHA', selb:'OJO4', ip:'172.19.114.225', pos:{top:'39.87509007926976%', left:'71.36548913043478%'}, floor:1, observations:''},
+    {name:'LVER20694', department:'Linha Vermelha', selb:'NQQ1', ip:'172.19.114.206', pos:{top:'26.03891424453519%', left:'68.98777173913044%'}, floor:1, observations:''},
+    {name:'GPR95198', department:'Centro de Comando', selb:'3L17', ip:'172.19.114.198', pos:{top:'38.52990631755945%', left:'79.38179347826086%'}, floor:1, observations:''},
+    {name:'GQA90119', department:'Setor de Qualidade', selb:'YWB3', ip:'172.19.114.119', pos:{top:'64.21699258091557%', left:'83.13563145184831%'}, floor:1, observations:''},
+    {name:'CPM00115', department:'CPM', selb:'3FO3', ip:'172.19.114.115', pos:{top:'47.40206933653617%', left:'30.259445019416358%'}, floor:1, observations:''},
+    {name:'CPM16899', department:'CPM', selb:'5G66', ip:'172.19.114.168', pos:{top:'47.24192721039923%', left:'17.464993056108412%'}, floor:1, observations:''},
+    {name:'DNA14994', department:'Genetica Molecular', selb:'8KO5', ip:'172.19.114.181', pos:{top:'41.15652641719526%', left:'60.773646825712746%'}, floor:1, observations:''},
+    {name:'COP13694', department:'Genetica Molecular', selb:'YYR5', ip:'172.19.114.136', pos:{top:'41.23659748026373%', left:'59.13188086581924%'}, floor:1, observations:''},
+    {name:'BRT09295', department:'Genetica Molecular', selb:'8KO6', ip:'172.19.114.101', pos:{top:'33.06934904727946%', left:'58.84881776928589%'}, floor:1, observations:''},
+    {name:'GMO10894', department:'Genetica Molecular', selb:'PNL5', ip:'172.19.114.108', pos:{top:'41.23659748026373%', left:'55.16899751435218%'}, floor:1, observations:''},
+    {name:'GMO10794', department:'Genetica Molecular', selb:'YYM1', ip:'172.19.114.107', pos:{top:'41.316668543332206%', left:'53.300781077231996%'}, floor:1, observations:'DRIVER ZD230 (10x3)'},
+    {name:'GMO114175', department:'Genetica Molecular', selb:'GC420t - Minietiqueta GMO114175', ip:'172.19.114.175', pos:{top:'38.3540392097987%', left:'48.26225795893816%'}, floor:1, observations:'DRIVER SEM SER EPL (10,8x3)'},
+    {name:'GMO20994', department:'Genetica Molecular', selb:'NQK7', ip:'172.19.114.209', pos:{top:'33.78998861489572%', left:'30.429282877336377%'}, floor:1, observations:''},
+    {name:'LVR18794', department:'Linha Verde', selb:'3FI5', ip:'172.19.114.187', pos:{top:'69.3730482824886%', left:'54.85733695652174%'}, floor:1, observations:''},
+    {name:'LOG09099', department:'PARDIS', selb:'OQD9', ip:'172.19.114.99', observations:'', floor:1, pos:{top:'94.06677876531347%', left:'43.91983695652174%'}},
+    {name:'LOG114127', department:'PARDIS', selb:'32F2', ip:'172.19.114.127', observations:'', floor:1, pos:{top:'93.97069421090559%', left:'46.36548913043478%'}},
+    {name:'LOG09032', department:'CPI', selb:'NBZ7', ip:'172.19.114.32', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'8.746649682880875%'}},
+    {name:'LOG00228', department:'CPI', selb:'NDV4', ip:'172.19.114.228', observations:'', floor:1, pos:{top:'61.7347896257929%', left:'6.765208007147343%'}},
+    {name:'CPI114195', department:'CPI', selb:'3T70', ip:'172.19.114.195', observations:'', floor:1, pos:{top:'61.65471856272442%', left:'4.613928473493795%'}},
+    {name:'LOG11447', department:'ALMOXARIFADO', selb:'CABTEC LOG11447', ip:'172.19.114.47', observations:'', floor:1, pos:{top:'88.63866681679991%', left:'12.822758272961282%'}},
+    {name:'LOG0942', department:'ALMOXARIFADO', selb:'7YP5', ip:'172.19.114.242', observations:'', floor:1, pos:{top:'77.66893117641908%', left:'13.27565922741466%'}},
+    {name:'LOG114179', department:'ALMOXARIFADO', selb:'5H66', ip:'172.19.114.179', observations:'', floor:1, pos:{top:'66.05862703149045%', left:'11.916956364054524%'}},
+    {name:'LOG252106', department:'ALMOXARIFADO', selb:'5DM8', ip:'172.19.252.106', observations:'', floor:1, pos:{top:'69.34154061729785%', left:'11.916956364054524%'}},
+    {name:'LOG114130', department:'ALMOXARIFADO', selb:'CABTEC LOG114130', ip:'172.19.114.130', observations:'', floor:1, pos:{top:'60.05329730135496%', left:'27.14575095754938%'}},
+    {name:'LOG09594', department:'ALMOARIFADO', selb:'ZT230 - PrintServer (LOG09594)', ip:'172.19.114.126', observations:'', floor:1, pos:{top:'58.13159178771159%', left:'27.202363576856055%'}},
+    {name:'LOG114165', department:'ALMOXARIFADO', selb:'CABTEC LOG114165', ip:'172.19.114.165', observations:'', floor:1, pos:{top:'77.74900223948754%', left:'29.80654406496298%'}},
+    {name:'LOG11440', department:'ALMOXARIFADO', selb:'CABTEC LOG11440', ip:'172.19.114.040', observations:'', floor:1, pos:{top:'74.94651503209097%', left:'30.429282877336377%'}},
+    {name:'LOG09091', department:'ALMOXARIFADO', selb:'7RN5', ip:'172.19.114.94', observations:'', floor:1, pos:{top:'95.84506249296251%', left:'24.42834523082911%'}},
+    {name:'MIC02394', department:'GENETICA MOLECULAR', selb:'ZT230 - PrintServer (MIC02394)', ip:'172.19.114.23', observations:'', floor:1, pos:{top:'10.729522451175418%', left:'25.730435474882572%'}},
+    {name:'LOG114164', department:'LOGISTICA', selb:'YEL3', ip:'172.19.114.164', observations:'', floor:1, pos:{top:'85.91625067247182%', left:'87.0419021840087%'}},
+    {name:'TOX114139', department:'Colorimetria', selb:'32F0', ip:'172.19.114.139', observations:'', floor:1, pos:{top:'66.7792665991067%', left:'44.86550080053782%'}}
+  ];
 
+  // Comandos EPL
   const TESTE_CABECA = `I8,A,001
 
 Q240,024
@@ -577,7 +451,7 @@ P1
   function renderAllPrinters(){ mapInner.querySelectorAll('.printer-point').forEach(n=>n.remove()); const fragment = document.createDocumentFragment(); printerData.filter(p => p.floor === currentFloor).forEach(p => { const node = createPrinterPointElement(p); fragment.appendChild(node); }); mapInner.appendChild(fragment); }
 
   function updateMapImage() {
-    if (currentFloor === 1) { mapImage.src = './plantanto.jpg'; } else if (currentFloor === 2) { mapImage.src = './plantanto2.jpg'; }
+    if (currentFloor === 1) { mapImage.src = 'plantanto.jpg'; } else if (currentFloor === 2) { mapImage.src = 'plantanto2.jpg'; }
     mapImage.onerror = function() { this.onerror = null; this.src = 'https://placehold.co/3840x2715/ffffff/cccccc?text=Planta+Indispon%C3%ADvel'; };
   }
 
@@ -601,10 +475,11 @@ P1
     detailsModal.classList.remove('hidden');
     detailsModal.setAttribute('aria-hidden','false');
 
+    // --- atualização do painel lateral (auto-preenchimento do IP) ---
     if (ipInputPanel) {
       ipInputPanel.value = printer.ip || '';
       panelCurrentIp.textContent = printer.ip || 'nenhum';
-      logPanel(`IP preenchido: ${printer.ip}`);
+      logPanel(`IP preenchido automaticamente: ${printer.ip}`);
     }
   }
   
@@ -622,7 +497,7 @@ async function checkStatus(ip) {
 
   if (!ip) { showToast('IP inválido!'); if (panelLog) logPanel('Status: IP inválido'); return; }
 
-  const TOTAL_TIMEOUT = 3000;
+  const TOTAL_TIMEOUT = 2000; 
   const controller = new AbortController();
   const signal = controller.signal;
   const timeoutId = setTimeout(() => controller.abort(), TOTAL_TIMEOUT);
@@ -653,6 +528,7 @@ async function checkStatus(ip) {
 
   } catch (err) {
     clearTimeout(timeoutId);
+
     const isAbort = err && (err.name === 'AbortError' || /aborted/i.test(err.message));
     display.classList.remove('hidden');
     sq.style.background = 'red';
@@ -660,15 +536,21 @@ async function checkStatus(ip) {
 
     if (isAbort) {
       statusText.innerText = 'Erro de conexão';
-      message.innerText = 'Timeout na rede';
+      message.innerText = 'Falta de rede / Timeout';
       logPanel(`Status: Timeout (${ip})`);
       return;
     }
 
     const errMsg = (err && err.message) ? err.message : String(err);
-    statusText.innerText = 'Erro';
-    message.innerText = `Erro ao conectar: ${errMsg}`;
-    logPanel(`Status: Erro ${errMsg}`);
+    if (errMsg.includes('502')) {
+      statusText.innerText = 'Erro de conexão';
+      message.innerText = 'Cabo desconectado ou impressora desligada';
+      logPanel(`Status: Erro 502 ${ip}`);
+    } else {
+      statusText.innerText = 'Erro';
+      message.innerText = `Erro ao conectar: ${errMsg}`;
+      logPanel(`Status: Erro ${ip} -> ${errMsg}`);
+    }
   }
 }
 
@@ -678,7 +560,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   const h3s = [];
   raw.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (m, g1) => {
     const cleaned = g1.replace(/<[^>]+>/g, '').trim();
-    h3s.push(cleaned);
+    h3s.push(cleaned); 
     return m;
   });
 
@@ -700,7 +582,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   if (s.includes('aguardo') || s.includes('em aguardo') || s.includes('ready') || s.includes('waiting') || (lower.includes('status:') && /aguardo|ready|waiting/.test(lower))) {
     sq.style.background = 'green';
     statusText.style.color = 'green';
-    statusText.innerText = 'Pronto';
+    statusText.innerText = 'Pronto para impressão';
     message.innerText = 'Tudo ok para imprimir';
     display.classList.remove('hidden');
     return;
@@ -710,7 +592,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Pausa';
-    message.innerText = 'Pressione o botão feed';
+    message.innerText = 'Para despausar pressione o botão feed';
     display.classList.remove('hidden');
     return;
   }
@@ -720,7 +602,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = 'Impressora aberta';
+    message.innerText = 'Impressora aberta — feche a impressora';
     display.classList.remove('hidden');
     return;
   }
@@ -730,7 +612,7 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = 'Falta de papel/etiqueta';
+    message.innerText = 'Impressora com erro de etiqueta/ribon — verifique os insumos';
     display.classList.remove('hidden');
     return;
   }
@@ -744,13 +626,13 @@ function applyZebraHeuristics(raw, sq, statusText, message, display) {
   if (anyOk && !anyPause) {
     sq.style.background = 'green';
     statusText.style.color = 'green';
-    statusText.innerText = 'Pronto';
-    message.innerText = 'Tudo ok';
+    statusText.innerText = 'Pronto para impressão';
+    message.innerText = 'Tudo ok para imprimir';
   } else if (anyPause) {
     sq.style.background = 'red';
     statusText.style.color = 'red';
     statusText.innerText = 'Em Erro';
-    message.innerText = (condH3 ? condH3 : 'Erro detectado');
+    message.innerText = (condH3 ? condH3 : 'Condição de erro detectada.');
   } else {
     sq.style.background = 'red';
     statusText.style.color = 'red';
@@ -779,19 +661,22 @@ function base64ToUtf8(b64) {
 function logPanel(msg){
   if (!panelLog) return;
   try {
-    const ts = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const ts = new Date().toLocaleTimeString();
     const entry = document.createElement('div');
     entry.textContent = `[${ts}] ${msg}`;
     panelLog.prepend(entry);
-    if (panelLog.children.length > 50) panelLog.removeChild(panelLog.lastChild);
-  } catch(e){}
+    const children = panelLog.children;
+    if (children.length > 50) {
+      panelLog.removeChild(children[children.length - 1]);
+    }
+  } catch(e){ console.warn('logPanel erro', e); }
 }
 
 async function sendCommand(cmd, actionName) {
   if (!currentPrinterIp) { showToast('IP inválido!'); logPanel(`${actionName}: IP inválido`); return; }
-  if (!cmd || cmd.trim() === '') { showToast('Comando vazio!'); return; }
+  if (!cmd || cmd.trim() === '') { showToast('Comando vazio!'); logPanel(`${actionName}: comando vazio`); return; }
 
-  logPanel(`${actionName}...`);
+  logPanel(`${actionName} -> enviando para ${currentPrinterIp} ...`);
   try {
     const payload = { ip: currentPrinterIp, cmd: cmd };
     const res = await fetch(API_BASE_URL, {
@@ -801,40 +686,74 @@ async function sendCommand(cmd, actionName) {
     });
     const json = await res.json().catch(()=>({}));
     if (res.ok && json.success) {
-      showToast(`${actionName} enviado!`);
-      logPanel(`${actionName}: OK`);
+      showToast(`${actionName} enviado com sucesso!`);
+      logPanel(`${actionName}: enviado com sucesso.`);
     } else {
       const err = json.error || JSON.stringify(json);
       showToast(`Erro: ${err}`);
-      logPanel(`${actionName}: Erro`);
+      logPanel(`${actionName}: erro -> ${err}`);
     }
   } catch (err) {
     showToast(`Erro de conexão`);
-    logPanel(`${actionName}: Falha conexão`);
+    logPanel(`${actionName}: erro de conexão.`);
   }
 }
 
+// Listeners Modal
 checkStatusBtn.addEventListener('click', () => { checkStatus(currentPrinterIp); });
 calibrateBtn.addEventListener('click', () => { sendCommand(CALIBRAGEM, 'Calibragem'); });
-headTestBtn.addEventListener('click', () => { sendCommand(TESTE_CABECA, 'Teste Cabeça'); });
+headTestBtn.addEventListener('click', () => { sendCommand(TESTE_CABECA, 'Teste de cabeça'); });
+
+// Listeners Sidebar
+if (btnLoadFactoryPanel) {
+  btnLoadFactoryPanel.addEventListener('click', () => {
+    if (!currentPrinterIp) { showToast('Selecione uma impressora'); return; }
+    if (!confirm('ATENÇÃO: Restaurar para padrão de fábrica?')) return;
+    sendCommand('^XA^JUF^XZ', 'Load Factory');
+  });
+}
+
+if (btnZT421Panel) {
+  btnZT421Panel.addEventListener('click', () => {
+    if (!currentPrinterIp) { showToast('Selecione uma impressora'); return; }
+    if (!confirm('Enviar layout ZT421?')) return;
+    sendCommand(`\x10CT~~CD,~CC^~CT~
+^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR3,3~SD20^JUS^LRN^CI0^XZ
+^XA
+^MMT
+^PW1866
+^LL0354
+^LS0
+^FO96,0^GFA,79872,79872,00208,:Z64:
+eJzs2kEOgyAURVESFsbWXZI7sKYFpE06f9FzByToF3LmliJJkiRJ/2rHfeLJjic7nux4suPJjic7nux4suPJjic7nux4suPJjic7nux4suPJjic7nuxu69mWHxLqUdpez4fn8rXtw315b8fINdzn9rqOtM9dY245YLz4PXT9Yt57HTqHZzw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PI/wvAAAAP//7NoxbtwwEEZhCixY6gg6Cq+VymLgg0W5iXIDlQQiaDI/NwsECOykCTRw3issyVTBD9LOujAePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw4MGDBw8ePHjw/OeeDxKe2OGJHZ7Y4YkdntjhiR2e2OGJHZ7Y4YkdntjhiR2e2OGJHZ7Y4YkdntjhiR2e2H1EDxERERH9dVP3H/lMaR2XNc3W07xPZldadv9NOXytpfTii9u4Smlpd233jw3PYmmyXZfr8NQ+PObMVM/H2osfjrRcuiuwJ8tTbSvjf3KTDY9d8kymza+WstYuP5y60v3txh2/X5FntV2MJM9iejjy5PHHvFkrvjZdqeiRWUuP9y9osxgmj16uaXjyw1O0eT/ZtJYvf3LybLq/3brn91q6FHYsw5Ofns/ydH8Ofr4tDik+HgZz0/3t5l2/XZXnmo/lmz4sZXgc4p5zPnyg5XPZtTZr3Nl0aeblwB59bKaz9Pr16dFQdsjU593Psx/qZqm6Z1tfT3nmuJ4sTz5zr02e2TS7HpBjHMrhurb6yPOvn/rqOo3DdvO236wMT8+9DM/y9PjK/tOT5dHsrq22T/KsgT3f9b51fQv94tnSb57L37c2rO750v7lnn4AAAD//+2cQYrcMBBFZRTQ0hcI6CjOsbIYRh5mkWNFuxwjDnMBhWwE0dipXyVpegLJJoGRoD4NDXYv9Cyp6lcJ97983A9OO41nC51njY0n08WHwrcrz7j51D01ngXx+p6G/hkhgaYqYuN0nlx5cO9+YJ5H5iGbycbnLtDmiP7LAY/G+afxHOx9xOp8HJfnnW08bBQKeA7/tWDg7HccshHxmMqDUPBhXB6ZFrMmLg6WDJ4EP0CVA/trKzw781ywcWZoPyo8BIONsSTwZI+JobkIiOWn7zwEw7tsfB7yAzBylnmKhxFFvXPy232dx5Zq3YbnCcRTkHPICHwCT+R652Kv2nkceKKZgAdP/UTOCeZcCq2waIrh+GZueBAykH+G51lQuAXheQ8P7SNtFBhRuvzceXySdsLwPLYGY7+jKwKeg3kQI7afnWc7JuFx3PjYKUYLD1mdJRt80Zw9dR5ahbXfsL/hiP8uHt9aH/rGbyozj208xnaey0zCw422P/KkysO5dAoepJ/Gc2dOWGubXnhQzyF+U7hOU/BQXA6V53sRHtd4sms8LrM7NRPwACkID+Wf9XjhsTc8id2pGZ8HsRhjxnq7luISih+DsE2LTPoh9JtKZ4bngafZvnEnl/2Oyxt4VsIynF3Ry+L+2+PpJ+HhGgE8gfuJ0R1kbyjhLLWfKDwPF7ftB+exr3nwTx07LS7u95ra7yWebSYe6V8jzF04/OHNctuPF579msFf00RkJ+cLgVZVRPOQeH4/LwnEE2aof8DTz7McjXgr0pe6Pc8SHj9DvQ2eeqYT2NUQDHhenTcKj5Nydn+r4apUKpVKpVKpVCqVSqVSqVQqlUqlUqlUKpVKpVKpVKr/q1/INjdd:B590
+^FT1735,339^A0N,50,50^FH\\^FDF^FS
+^FT95,339^A0N,50,45^FH\\^FDI^FS
+^PQ1,0,1,Y^XZ`, 'ZT421');
+  });
+}
+
+if (btnRestartPanel) {
+  btnRestartPanel.addEventListener('click', () => {
+    if (!currentPrinterIp) { showToast('Selecione uma impressora'); return; }
+    if (!confirm('Deseja reiniciar a impressora?')) return;
+    sendCommand('~JR', 'Reiniciar');
+  });
+}
 
 setIpPanelBtn.addEventListener('click', () => {
   const v = ipInputPanel.value.trim();
   if (!v) { showToast('Digite o IP'); return; }
   currentPrinterIp = v;
-  document.getElementById('modal-ip').textContent = currentPrinterIp;
+  panelCurrentIp.textContent = currentPrinterIp;
+  const modalIp = document.getElementById('modal-ip');
+  if (modalIp) modalIp.textContent = currentPrinterIp;
   document.getElementById('modal-link').href = `http://${currentPrinterIp}`;
-  showToast('IP definido');
-  logPanel('IP definido');
-});
-
-btnOpenPanel.addEventListener('click', () => {
-  if (!currentPrinterIp) { showToast('Defina o IP'); return; }
-  window.open(`http://${currentPrinterIp}/`, '_blank');
+  showToast('IP definido: ' + currentPrinterIp);
+  logPanel('IP definido: ' + currentPrinterIp);
 });
 
 btnStatusPanel.addEventListener('click', () => {
-  if (!currentPrinterIp) { showToast('Defina o IP'); return; }
+  if (!currentPrinterIp) { showToast('Defina o IP'); logPanel('Status: IP indefinido'); return; }
   checkStatus(currentPrinterIp);
 });
 
@@ -845,9 +764,14 @@ collapsePanelBtn.addEventListener('click', () => {
   const aside = document.getElementById('ip-tools-sidebar');
   if (!aside) return;
   aside.classList.toggle('collapsed');
-  collapsePanelBtn.textContent = aside.classList.contains('collapsed') ? '+' : '—';
+  if (aside.classList.contains('collapsed')) {
+    collapsePanelBtn.textContent = '+';
+  } else {
+    collapsePanelBtn.textContent = '—';
+  }
 });
 
+// Busca
 searchHitbox.addEventListener('click', (e) => {
   e.stopPropagation();
   if (searchInput.value.trim()) { searchInput.value = ''; handleSearch(); }
@@ -888,15 +812,17 @@ function handleSearch() {
       results.forEach((r, idx) => {
           const d = document.createElement('div');
           d.className = 'result-item p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
-          d.innerHTML = `<div class="font-semibold">${r.name}</div><div class="text-sm text-gray-500">SELB: ${r.selb}</div>`;
+          d.innerHTML = `<div class="font-semibold">${r.name}</div><div class="text-sm text-gray-500">SELB: ${r.selb} (Andar ${r.floor})</div>`;
           d.tabIndex = 0;
+          d.setAttribute('role','option');
           d.addEventListener('click', (ev) => {
               ev.stopPropagation();
               searchResultsPanel.style.display = 'none';
               searchContainer.classList.remove('expanded');
               searchInput.value = r.name;
               if (r.floor !== currentFloor) {
-                currentFloor = r.floor; floorSelect.value = currentFloor; updateMapImage(); renderAllPrinters();
+                currentFloor = r.floor; floorSelect.value = currentFloor; updateMapImage();
+                renderAllPrinters();
               }
               focusPrinter(r, true);
           });
@@ -917,26 +843,34 @@ function focusPrinter(printer, openModal = false) {
 
   const pRect = point.getBoundingClientRect();
   const mapRect = mapContainer.getBoundingClientRect();
+
+  const pCenterX = (pRect.left - mapRect.left) + pRect.width / 2;
+  const pCenterY = (pRect.top - mapRect.top) + pRect.height / 2;
+
   const scale = 1.4;
-  let dx = mapRect.width / 2 - ((pRect.left - mapRect.left) + pRect.width / 2) * scale;
-  let dy = mapRect.height / 2 - ((pRect.top - mapRect.top) + pRect.height / 2) * scale;
-  
-  // Limites básicos para não sair muito da tela
-  const maxDx = mapRect.width * 0.5;
-  const minDx = -mapRect.width * 0.5;
-  
-  // Animação de zoom
+  let dx = mapRect.width / 2 - pCenterX * scale;
+  let dy = mapRect.height / 2 - pCenterY * scale;
+
+  const scaledWidth = mapRect.width * scale;
+  const scaledHeight = mapRect.height * scale;
+  const maxDx = 0; const minDx = mapRect.width - scaledWidth;
+  const maxDy = 0; const minDy = mapRect.height - scaledHeight;
+  dx = Math.min(maxDx, Math.max(minDx, dx));
+  dy = Math.min(maxDy, Math.max(minDy, dy));
+
   mapInner.style.transform = `scale(${scale}) translate(${dx}px, ${dy}px)`;
 
-  // Scroll suave para o container
-  mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const containerRectAfter = mapContainer.getBoundingClientRect();
+  const scrollLeft = window.scrollX + containerRectAfter.left - (window.innerWidth - containerRectAfter.width) / 2;
+  const scrollTop = window.scrollY + containerRectAfter.top - (window.innerHeight - containerRectAfter.height) / 2;
+  window.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
 
   transientLabel = document.createElement('div');
   transientLabel.className = 'focus-label';
-  transientLabel.innerHTML = `${printer.name}`;
+  transientLabel.innerHTML = `${printer.name} <span class="font-normal text-xs text-gray-500 ml-2">(${printer.selb})</span>`;
   transientLabel.style.left = `50%`;
   transientLabel.style.top = `50%`;
-  transientLabel.style.transform = `translate(-50%, -50px)`;
+  transientLabel.style.transform = `translate(-50%, calc(-100% - 20px))`;
   mapContainer.appendChild(transientLabel);
 
   focusResetTimer = setTimeout(() => {
@@ -967,19 +901,31 @@ document.querySelectorAll('.close-modal-btn').forEach(b => b.addEventListener('c
 
 floorSelect.addEventListener('change', (e) => {
   currentFloor = parseInt(e.target.value, 10);
-  updateMapImage(); renderAllPrinters();
+  updateMapImage();
+  renderAllPrinters();
 });
   
 document.addEventListener('keydown', (e) => {
     if (e.key === "Escape") {
-        detailsModal.classList.add('hidden');
+        detailsModal.classList.add('hidden'); detailsModal.setAttribute('aria-hidden','true');
         searchResultsPanel.style.display = 'none';
-        searchContainer.classList.remove('expanded');
+        if (searchContainer.classList.contains('expanded')) {
+            searchContainer.classList.remove('expanded'); searchInput.value = '';
+        }
     }
 });
 
+if (btnSendRawPanel) {
+  btnSendRawPanel.addEventListener('click', () => {
+    const cmd = rawCmdPanel.value.trim();
+    if (!cmd) { showToast('Comando vazio'); return; }
+    sendCommand(cmd, 'Comando Manual');
+  });
+}
+
 loadPrinters();
 updateMapImage();
+
 });
 </script>
 
